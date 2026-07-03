@@ -1,0 +1,17 @@
+# Secrets — never commit
+.env
+
+# Python virtualenv & caches
+.venv/
+__pycache__/
+*.pyc
+
+# Local editor/agent settings
+.claude/settings.local.json
+
+# Run logs (reproducible noise)
+*.log
+
+# Local baseline snapshots (baseline state is preserved in git history on main)
+*.baseline.pkl
+*.baseline.csv
