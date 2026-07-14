@@ -17,7 +17,10 @@ from tuberlens.utils import create_train_test_split
 load_dotenv(override=True)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train a high-stakes probe.")
+    parser = argparse.ArgumentParser(
+        description="Train a concept probe (e.g. high-stakes/low-stakes, "
+        "harmful/not-harmful) on an LLM's activations."
+    )
     parser.add_argument(
         "--model",
         type=str,
@@ -36,8 +39,29 @@ if __name__ == "__main__":
     parser.add_argument(
         "--probe_training_data",
         type=str,
-        default="initial_training_set/init_seed.jsonl",
-        help="Path to the probe training data file",
+        default="initial_training_set/init_seed_hs_ls_200.jsonl",
+        help="Path to the probe training data file for the concept being trained",
+    )
+    parser.add_argument(
+        "--pos_class_label",
+        type=str,
+        default="high-stakes",
+        help="Positive-class label; must match the 'labels' values in the training "
+        "data (e.g. 'high-stakes', 'harmful_to_human').",
+    )
+    parser.add_argument(
+        "--neg_class_label",
+        type=str,
+        default="low-stakes",
+        help="Negative-class label; must match the 'labels' values in the training "
+        "data (e.g. 'low-stakes', 'not_harmful_to_human').",
+    )
+    parser.add_argument(
+        "--concept_description",
+        type=str,
+        default="the conversation is high-stakes",
+        help="Short phrase describing the positive concept, used to build the probe "
+        'description stored in the pickle (e.g. "the conversation is harmful to human").',
     )
     parser.add_argument(
         "--split", type=str, default=None, help="Field to use for train-test split"
@@ -63,14 +87,18 @@ if __name__ == "__main__":
 
     layer = args.layer
 
-    pos_class_label = "high-stakes"
-    neg_class_label = "low-stakes"
-    probe_description = f"A linear probe on {args.model} detecting whether the conversation is high-stakes."
+    pos_class_label = args.pos_class_label
+    neg_class_label = args.neg_class_label
+    probe_description = (
+        f"A linear probe on {args.model} detecting whether {args.concept_description}."
+    )
 
-    stakes_dataset = Path(args.probe_training_data)
-   
+    training_data_path = Path(args.probe_training_data)
+
     dataset = LabelledDataset.load_from(
-        stakes_dataset, pos_class_label=pos_class_label, neg_class_label=neg_class_label
+        training_data_path,
+        pos_class_label=pos_class_label,
+        neg_class_label=neg_class_label,
     )
     train_dataset, validation_dataset = create_train_test_split(
         dataset, split_field=args.split

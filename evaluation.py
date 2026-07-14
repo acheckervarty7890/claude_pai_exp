@@ -25,13 +25,15 @@ def seed_everything(seed: int):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Evaluate a high-stakes probe.")
+    parser = argparse.ArgumentParser(
+        description="Evaluate a concept probe against local eval datasets."
+    )
 
     parser.add_argument(
         "--probe_path",
         type=str,
         default="probe_llama1b.pkl",
-        help="Path to the trained probe (matches high_stakes.py --output_probe_path default)",
+        help="Path to the trained probe (matches train.py --output_probe_path default)",
     )
 
     parser.add_argument(
@@ -51,7 +53,23 @@ if __name__ == "__main__":
         "--eval_dataset_save_dir",
         type=PATH,
         default=PATH(__file__).parent / "eval_datasets",
-        help="Directory containing the local evaluation datasets (*.jsonl)",
+        help="Directory that directly contains the local evaluation datasets "
+        "(*.jsonl) for the concept, e.g. eval_datasets/hs_ls",
+    )
+    parser.add_argument(
+        "--pos_class_label",
+        type=str,
+        default="high-stakes",
+        help="Positive-class label; must match the 'labels' values in the eval data "
+        "and the label the probe was trained with (e.g. 'high-stakes', "
+        "'harmful_to_human').",
+    )
+    parser.add_argument(
+        "--neg_class_label",
+        type=str,
+        default="low-stakes",
+        help="Negative-class label; must match the 'labels' values in the eval data "
+        "(e.g. 'low-stakes', 'not_harmful_to_human').",
     )
     parser.add_argument(
         "--seed",
@@ -96,9 +114,8 @@ if __name__ == "__main__":
     # Initialize the model so we can compute activations
     model = LLMModel.load(probe.model_name)
 
-    pos_class_label = "high-stakes"
-    neg_class_label = "low-stakes"
-    # model_name = "meta-llama/Llama-3.2-1B-Instruct"
+    pos_class_label = args.pos_class_label
+    neg_class_label = args.neg_class_label
 
     # Load all evaluation datasets directly from the local directory (no download).
     eval_dir = PATH(args.eval_dataset_save_dir)
