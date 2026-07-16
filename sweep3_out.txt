@@ -1,0 +1,5 @@
+f6 pd=6 w=(1,1,1) -> MEAN 0.8210 | anthropic=0.881 mt=0.759 mts=0.889 toolace=0.755 
+f10 pd=10 w=(1,1,1) -> MEAN 0.8124 | anthropic=0.887 mt=0.736 mts=0.891 toolace=0.736 
+f20 pd=20 w=(1,1,1) -> MEAN 0.8235 | anthropic=0.905 mt=0.765 mts=0.887 toolace=0.737 
+f25 pd=25 w=(1,1,1) -> MEAN 0.8141 | anthropic=0.893 mt=0.757 mts=0.868 toolace=0.738 
+ALL DONE

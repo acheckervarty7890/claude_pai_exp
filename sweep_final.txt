@@ -1,0 +1,4 @@
+final pd=8 w=(1,1,1) gseed=7  -> MEAN 0.8324 | anthropic=0.934 mt=0.764 mts=0.881 toolace=0.751 
+v8d pd=8 w=(1,1,1) gseed=404  -> MEAN 0.8197 | anthropic=0.919 mt=0.734 mts=0.877 toolace=0.748 
+v8e pd=8 w=(1,1,1) gseed=505  -> MEAN 0.8255 | anthropic=0.925 mt=0.775 mts=0.874 toolace=0.728 
+ALL DONE

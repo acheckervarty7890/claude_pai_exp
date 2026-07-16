@@ -1,0 +1,4 @@
+n1 pd=15 w=(1,1,1) gseed=101  -> MEAN 0.8359 | anthropic=0.918 mt=0.796 mts=0.887 toolace=0.743 
+n2 pd=15 w=(1,1,1) gseed=202  -> MEAN 0.8219 | anthropic=0.913 mt=0.759 mts=0.875 toolace=0.741 
+n3 pd=15 w=(1,1,1) gseed=303  -> MEAN 0.8292 | anthropic=0.929 mt=0.791 mts=0.856 toolace=0.741 
+ALL DONE

@@ -1,0 +1,7 @@
+v8a pd=8 w=(1,1,1) gseed=101  -> MEAN 0.8455 | anthropic=0.942 mt=0.783 mts=0.901 toolace=0.756 
+v8b pd=8 w=(1,1,1) gseed=202  -> MEAN 0.8185 | anthropic=0.930 mt=0.740 mts=0.855 toolace=0.749 
+v8c pd=8 w=(1,1,1) gseed=303  -> MEAN 0.8363 | anthropic=0.939 mt=0.783 mts=0.880 toolace=0.743 
+v25a pd=25 w=(1,1,1) gseed=101  -> MEAN 0.8286 | anthropic=0.938 mt=0.791 mts=0.860 toolace=0.725 
+v25b pd=25 w=(1,1,1) gseed=202  -> MEAN 0.8266 | anthropic=0.938 mt=0.777 mts=0.864 toolace=0.727 
+v25c pd=25 w=(1,1,1) gseed=303  -> MEAN 0.8324 | anthropic=0.940 mt=0.787 mts=0.881 toolace=0.721 
+ALL DONE

@@ -1,0 +1,7 @@
+s1 pd=15 w=(1,1,1) gseed=101  -> MEAN 0.8081 | anthropic=0.860 mt=0.754 mts=0.866 toolace=0.752 
+s2 pd=15 w=(1,1,1) gseed=202  -> MEAN 0.8085 | anthropic=0.889 mt=0.741 mts=0.862 toolace=0.742 
+s3 pd=15 w=(1,1,1) gseed=303  -> MEAN 0.8174 | anthropic=0.888 mt=0.775 mts=0.880 toolace=0.727 
+td1 pd=15 w=(1,1,1) gseed=101 --tool_defs_in_system -> MEAN 0.8143 | anthropic=0.914 mt=0.729 mts=0.881 toolace=0.734 
+td2 pd=15 w=(1,1,1) gseed=202 --tool_defs_in_system -> MEAN 0.8199 | anthropic=0.920 mt=0.727 mts=0.888 toolace=0.744 
+td3 pd=15 w=(1,1,1) gseed=303 --tool_defs_in_system -> MEAN 0.8064 | anthropic=0.890 mt=0.698 mts=0.880 toolace=0.758 
+ALL DONE

@@ -1,0 +1,5 @@
+c_lo pd=15 w=(1,1,1) -> MEAN 0.8279 | anthropic=0.901 mt=0.767 mts=0.887 toolace=0.755 
+c_hi pd=70 w=(1,1,1) -> MEAN 0.8176 | anthropic=0.891 mt=0.767 mts=0.866 toolace=0.747 
+c_2h pd=40 w=(3,1,1) -> MEAN 0.8196 | anthropic=0.900 mt=0.779 mts=0.881 toolace=0.719 
+c_notool pd=40 w=(1,1,0) -> MEAN 0.8246 | anthropic=0.886 mt=0.783 mts=0.891 toolace=0.739 
+ALL DONE
