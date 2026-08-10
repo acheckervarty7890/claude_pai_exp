@@ -32,7 +32,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--probe_path",
         type=str,
-        default="probe_llama1b.pkl",
+        default="rand.pkl",
         help="Path to the trained probe (matches train.py --output_probe_path default)",
     )
 
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--using_kaggle",
         action="store_true",
-        help="Whether the script will upload activations to Kaggle",
+        help="",
     )
 
     args = parser.parse_args()

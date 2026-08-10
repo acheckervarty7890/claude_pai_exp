@@ -24,15 +24,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="meta-llama/Llama-3.2-1B-Instruct",
+        default="google/gemma-3-27b-it",
         help="Model name to use",
     )
-    parser.add_argument("--layer", type=int, default=8, help="Layer number to probe")
+    parser.add_argument("--layer", type=int, default=32, help="Layer number to probe")
 
     parser.add_argument(
         "--output_probe_path",
         type=str,
-        default="probe_llama1b.pkl",
+        default="random_path_name.pkl",
         help="Output path for the trained probe",
     )
 
