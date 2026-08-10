@@ -1,0 +1,6 @@
+nohup: ignoring input
+[failsafe-pai 2026-08-10 16:14:50] repo:     /workspace/claude_pai_exp
+[failsafe-pai 2026-08-10 16:14:50] branch:   main -> origin
+[failsafe-pai 2026-08-10 16:14:50] interval: 900s
+[failsafe-pai 2026-08-10 16:14:50] excluded: kaggle.json, *.pt, *.pth, .venv/, __pycache__/, *.pyc, .env
+[failsafe-pai 2026-08-10 16:14:50] size cap: 30 MB per file
