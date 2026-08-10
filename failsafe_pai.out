@@ -58,3 +58,21 @@ nohup: ignoring input
     activations/val-v6 (870 MB)
 [failsafe-pai 2026-08-10 18:30:28] committed: failsafe: periodic snapshot @ 2026-08-10T18:30:28  (6ca1e1d)
 [failsafe-pai 2026-08-10 18:30:31] pushed to origin/main
+[failsafe-pai 2026-08-10 19:05:01] skipping 15 file(s) over 30 MB:
+    activations/v0_baseline (94 MB)
+    activations/v1 (2104 MB)
+    activations/v2 (2829 MB)
+    activations/v3 (3566 MB)
+    activations/v4 (3722 MB)
+    activations/v4b (3722 MB)
+    activations/v5 (5211 MB)
+    activations/v6 (3899 MB)
+    activations/val-v1 (509 MB)
+    activations/val-v2 (591 MB)
+    activations/val-v3 (838 MB)
+    activations/val-v4 (836 MB)
+    activations/val-v4b (882 MB)
+    activations/val-v5 (1122 MB)
+    activations/val-v6 (870 MB)
+[failsafe-pai 2026-08-10 19:05:01] committed: failsafe: periodic snapshot @ 2026-08-10T19:05:01  (09b76d9)
+[failsafe-pai 2026-08-10 19:05:03] pushed to origin/main
