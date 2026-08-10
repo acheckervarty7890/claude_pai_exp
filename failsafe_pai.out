@@ -1,0 +1,7 @@
+nohup: ignoring input
+[failsafe-pai 2026-08-10 23:33:36] repo:     /workspace/claude_pai_exp
+[failsafe-pai 2026-08-10 23:33:36] branch:   experiment_cloud_huha_1 -> origin
+[failsafe-pai 2026-08-10 23:33:36] interval: 900s
+[failsafe-pai 2026-08-10 23:33:36] excluded: kaggle.json, *.pt, *.pth, .venv/, __pycache__/, *.pyc, .env
+[failsafe-pai 2026-08-10 23:33:36] size cap: 30 MB per file
+[failsafe-pai 2026-08-10 23:35:05] polling every 900s — Ctrl-C or kill to stop (a final snapshot is taken)
