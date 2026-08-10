@@ -16,3 +16,15 @@ nohup: ignoring input
 [failsafe-pai 2026-08-10 16:34:51] committed: failsafe: startup snapshot @ 2026-08-10T16:34:51  (6b0ffa4)
 [failsafe-pai 2026-08-10 16:35:03] pushed to origin/main
 [failsafe-pai 2026-08-10 16:35:03] polling every 900s — Ctrl-C or kill to stop (a final snapshot is taken)
+[failsafe-pai 2026-08-10 17:11:34] skipping 9 file(s) over 30 MB:
+    activations/v0_baseline (94 MB)
+    activations/v1 (2104 MB)
+    activations/v2 (2829 MB)
+    activations/v3 (3566 MB)
+    activations/v4 (3722 MB)
+    activations/val-v1 (509 MB)
+    activations/val-v2 (591 MB)
+    activations/val-v3 (838 MB)
+    activations/val-v4 (836 MB)
+[failsafe-pai 2026-08-10 17:11:34] committed: failsafe: periodic snapshot @ 2026-08-10T17:11:34  (9ad79aa)
+[failsafe-pai 2026-08-10 17:11:38] pushed to origin/main
