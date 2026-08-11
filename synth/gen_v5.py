@@ -265,20 +265,23 @@ def msgs(pairs):
 
 
 def main():
+    # Emitted separately: the v4a/v4b comparison showed lone-user-turn samples (batch 3's
+    # shape, which SCENARIO shares) cost more on one eval split than they bought on
+    # another, so the pairs are the default and the scenarios are opt-in.
     rows = []
     for user, harmful, safe in PAIRS:
         rows.append({"inputs": msgs([("user", user), ("assistant", harmful)]), "labels": POS})
         rows.append({"inputs": msgs([("user", user), ("assistant", safe)]), "labels": NEG})
-    for text, label in SCENARIO:
-        rows.append({"inputs": msgs([("user", text)]), "labels": label})
+    scen = [{"inputs": msgs([("user", text)]), "labels": label} for text, label in SCENARIO]
 
-    random.Random(4).shuffle(rows)
-    out = Path(__file__).parent / "synth_v5.jsonl"
-    with out.open("w") as fh:
-        for r in rows:
-            fh.write(json.dumps(r) + "\n")
-    n_pos = sum(r["labels"] == POS for r in rows)
-    print(f"wrote {len(rows)} rows to {out} ({n_pos} pos / {len(rows) - n_pos} neg)")
+    for name, batch, seed in (("synth_v5_pairs", rows, 4), ("synth_v5_scen", scen, 5)):
+        random.Random(seed).shuffle(batch)
+        out = Path(__file__).parent / f"{name}.jsonl"
+        with out.open("w") as fh:
+            for r in batch:
+                fh.write(json.dumps(r) + "\n")
+        n_pos = sum(r["labels"] == POS for r in batch)
+        print(f"wrote {len(batch)} rows to {out} ({n_pos} pos / {len(batch) - n_pos} neg)")
 
 
 if __name__ == "__main__":
