@@ -6,10 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A small experiment harness that uses **[tuberlens](https://github.com/blandfort/tuberlens)** (an activation-probing library) to **train and evaluate a "concept probe"** — a binary classifier of a labelled concept — on a HuggingFace LLM's hidden activations. It is two scripts plus local data — per-concept training seeds in `initial_training_set/` and held-out eval sets in `eval_datasets/` — with the modeling machinery living entirely in tuberlens.
 
-The harness is **concept-agnostic**: a concept is a positive-vs-negative distinction defined entirely by its data (the `labels` field in the JSONL) plus the class labels and description you pass on the command line — no code is concept-specific. New concepts are added just by dropping in data (see "Adding a concept" below). Two concepts currently ship, each with its own training seed and a matching eval subdirectory:
+The harness is **concept-agnostic**: a concept is a positive-vs-negative distinction defined entirely by its data (the `labels` field in the JSONL) plus the class labels and description you pass on the command line — no code is concept-specific. New concepts are added just by dropping in data (see "Adding a concept" below). Three concepts currently ship, each with its own training seed and a matching eval subdirectory:
 
-- **`hs_ls`** — high-stakes vs. low-stakes conversations (labels `high-stakes` / `low-stakes`).
-- **`hu_ha`** — harmful-to-human vs. not-harmful-to-human conversations (labels `harmful_to_human` / `not_harmful_to_human`).
+- **`hs_ls`** — high-stakes vs. low-stakes conversations (labels `high-stakes` / `low-stakes`). Seed: `initial_training_set/init_seed_hs_ls_200.jsonl`; evals: `eval_datasets/hs_ls/`.
+- **`hu_ha`** — harmful-to-human vs. not-harmful-to-human conversations (labels `harmful_to_human` / `not_harmful_to_human`). Seed: `initial_training_set/init_seed_hu_ha_200.jsonl`; evals: `eval_datasets/hu_ha/`.
+- **`follows_instructions`** — the assistant follows the user's instruction vs. it does not (labels `assistant_follows_the_instruction` / `assistant_does_not_follow_the_instruction`). Seed: `initial_training_set/init_seed_follows_instruction.jsonl` (note: singular `instruction`, and no `_200` suffix — it is a smaller 50-row seed); evals: `eval_datasets/follows_instructions/` (plural). The seed/eval naming does not match, so copy the paths rather than guessing them.
 
 Keep a concept's training seed and eval subdirectory paired: train on its seed, then evaluate on its subdirectory using the same class labels.
 
@@ -22,6 +23,23 @@ No `uv`/`pip` on the system Python; use the project venv directly (Python 3.12, 
 ```bash
 .venv/bin/python train.py [args]     # train a probe
 .venv/bin/python evaluation.py [args]      # evaluate a trained probe
+```
+
+Bare defaults train/evaluate the `hs_ls` concept. A non-default concept means overriding the concept args on both sides, e.g. for `follows_instructions`:
+
+```bash
+.venv/bin/python train.py \
+  --probe_training_data initial_training_set/init_seed_follows_instruction.jsonl \
+  --pos_class_label assistant_follows_the_instruction \
+  --neg_class_label assistant_does_not_follow_the_instruction \
+  --concept_description "the assistant follows the instruction" \
+  --output_probe_path probe_follows_instructions.pkl
+
+.venv/bin/python evaluation.py \
+  --probe_path probe_follows_instructions.pkl \
+  --eval_dataset_save_dir eval_datasets/follows_instructions \
+  --pos_class_label assistant_follows_the_instruction \
+  --neg_class_label assistant_does_not_follow_the_instruction
 ```
 
 Requires a `HF_TOKEN` (the default model `meta-llama/Llama-3.2-1B-Instruct` is gated). It lives in the project-root **`.env`** (git-ignored / secret — do not commit or echo it). Both scripts call `load_dotenv()` at import so the `.env` is picked up automatically; note that **tuberlens does not load a `.env` on its own** when used as a library (`hf_login()` only reads `os.getenv("HF_TOKEN")`), so this `load_dotenv()` in the scripts is what makes the token reach it. A CUDA GPU is used automatically when available (else CPU + float32).
@@ -38,7 +56,7 @@ The two scripts form a pipeline connected by a pickled `Probe` file.
 
 2. **`evaluation.py`** — loads a pickled probe and scores it against local eval sets.
    - Unpickles the probe, reloads its model (`LLMModel.load(probe.model_name)`), then **loads eval datasets from the local `--eval_dataset_save_dir`**. It globs every `*.jsonl` **directly in that directory** (non-recursively) and loads each via `LabelledDataset.load_from`, using the filename stem as the dataset name — so it evaluates whatever files are present. It runs `tuberlens.evaluation.get_performances` and writes a CSV.
-   - `eval_datasets/` is split into a per-concept subdirectory each (`eval_datasets/hs_ls/`, `eval_datasets/hu_ha/`); there are no `*.jsonl` at the top level. Because the glob is non-recursive, point `--eval_dataset_save_dir` at the subdirectory for the concept you trained on (e.g. `eval_datasets/hs_ls`) — the baked-in default (`eval_datasets/`) now finds nothing.
+   - `eval_datasets/` is split into a per-concept subdirectory each (`eval_datasets/hs_ls/`, `eval_datasets/hu_ha/`, `eval_datasets/follows_instructions/`); there are no `*.jsonl` at the top level. Because the glob is non-recursive, point `--eval_dataset_save_dir` at the subdirectory for the concept you trained on (e.g. `eval_datasets/hs_ls`) — the baked-in default (`eval_datasets/`) now finds nothing.
    - Class labels come from `--pos_class_label` / `--neg_class_label` (defaulting to the `hs_ls` concept); they must match both the eval data's `labels` values and the labels the probe was trained with. Pass the same labels you trained with.
    - Also defines `seed_everything(seed)`, which `train.py` imports — so the two files are coupled; keep that import intact.
 
@@ -46,8 +64,8 @@ The two scripts form a pipeline connected by a pickled `Probe` file.
 
 - `train.py` — training entry point (concept-agnostic).
 - `evaluation.py` — evaluation entry point + shared `seed_everything`.
-- `initial_training_set/` — probe training seeds, one `*.jsonl` per concept (`init_seed_hs_ls_200.jsonl`, `init_seed_hu_ha_200.jsonl`); selected via `--probe_training_data`. Readable (not a black box).
-- `eval_datasets/` — held-out eval sets consumed only by `evaluation.py`, organized into per-concept subdirectories (`hs_ls/`, `hu_ha/`). **Do not inspect these files** (see the rule below).
+- `initial_training_set/` — probe training seeds, one `*.jsonl` per concept (`init_seed_hs_ls_200.jsonl`, `init_seed_hu_ha_200.jsonl`, `init_seed_follows_instruction.jsonl`); selected via `--probe_training_data`. Readable (not a black box).
+- `eval_datasets/` — held-out eval sets consumed only by `evaluation.py`, organized into per-concept subdirectories (`hs_ls/`, `hu_ha/`, `follows_instructions/`). **Do not inspect these files** (see the rule below).
 - `.venv/` — project virtualenv with tuberlens installed editable.
 - Probe pickles (`*.pkl`) are produced by training and consumed by evaluation; paths are CLI-controlled.
 
