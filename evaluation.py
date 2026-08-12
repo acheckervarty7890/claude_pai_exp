@@ -15,6 +15,22 @@ from tuberlens.model import LLMModel
 load_dotenv(override=True)
 
 
+def parse_max_memory(spec: str | None) -> dict | None:
+    """Parse 'cuda:0=22GiB,cpu=45GiB' into a max_memory dict for HF device placement."""
+    if not spec:
+        return None
+    out = {}
+    for part in spec.split(","):
+        device, limit = part.split("=")
+        device = device.strip()
+        if device.startswith("cuda:"):
+            device = int(device.split(":", 1)[1])
+        elif device.isdigit():
+            device = int(device)
+        out[device] = limit.strip()
+    return out
+
+
 def seed_everything(seed: int):
     random.seed(seed)
     np.random.seed(seed)
@@ -99,6 +115,24 @@ if __name__ == "__main__":
         action="store_true",
         help="Whether the script will upload activations to Kaggle",
     )
+    parser.add_argument(
+        "--max_memory",
+        type=str,
+        default=None,
+        help="Memory pinning for model placement, e.g. 'cuda:0=22GiB,cpu=45GiB'",
+    )
+    parser.add_argument(
+        "--device_map",
+        type=str,
+        default="auto",
+        help="HF device_map strategy for model loading",
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=1,
+        help="Batch size for activation extraction",
+    )
 
     args = parser.parse_args()
 
@@ -112,7 +146,13 @@ if __name__ == "__main__":
     print(probe.description)
 
     # Initialize the model so we can compute activations
-    model = LLMModel.load(probe.model_name)
+    model_kwargs = {"device_map": args.device_map}
+    max_memory = parse_max_memory(args.max_memory)
+    if max_memory is not None:
+        model_kwargs["max_memory"] = max_memory
+    model = LLMModel.load(
+        probe.model_name, batch_size=args.batch_size, model_kwargs=model_kwargs
+    )
 
     pos_class_label = args.pos_class_label
     neg_class_label = args.neg_class_label
