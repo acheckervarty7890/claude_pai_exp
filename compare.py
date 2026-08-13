@@ -17,7 +17,10 @@ for path in results:
         cands = [c for c in df.columns if "auroc" in c.lower()]
         metric = cands[0] if cands else df.columns[-1]
     name_col = "dataset" if "dataset" in df.columns else df.columns[0]
-    frames[path.stem.replace("eval_", "")] = df.set_index(name_col)[metric]
+    s = df.set_index(name_col)[metric]
+    # tuberlens already appends its own "mean" row; drop it so the summary
+    # below is a mean over datasets rather than over datasets plus their mean.
+    frames[path.stem.replace("eval_", "")] = s.drop(index="mean", errors="ignore")
 
 table = pd.DataFrame(frames)
 table.loc["** MEAN **"] = table.mean()
