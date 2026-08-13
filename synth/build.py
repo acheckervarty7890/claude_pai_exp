@@ -72,7 +72,9 @@ def validate(rows: list[dict]) -> None:
     print(f"validated {len(rows)} rows against the chat template")
 
 
-def lengthen(items: list[dict], n: int, rng: random.Random) -> list[dict]:
+def lengthen(
+    items: list[dict], n: int, rng: random.Random, budget: int = 3600
+) -> list[dict]:
     """Build long-context variants by prepending compliant history to a pair.
 
     Training conversations are ~110 tokens while the eval conversations are
@@ -91,13 +93,12 @@ def lengthen(items: list[dict], n: int, rng: random.Random) -> list[dict]:
     if not pool:
         return []
 
-    budget = 3600  # chars, ~900 tokens
     out = []
     for _ in range(n):
         target = rng.choice(items)
         target_len = len(target["u"]) + max(len(target["pos"]), len(target["neg"]))
         room = budget - target_len
-        if room < 400:
+        if room < 150:
             continue
 
         history, used = [], 0
@@ -134,6 +135,14 @@ def main() -> None:
         default=0,
         help="Number of long-context variants to synthesize from the pairs.",
     )
+    ap.add_argument(
+        "--long-budget",
+        type=int,
+        default=3600,
+        help="Char budget per augmented conversation (~4 chars/token). The eval "
+        "sets sit at 39-247 median tokens, so ~800 lands in that band; the "
+        "original 3600 overshot it by several times.",
+    )
     args = ap.parse_args()
 
     rows = []
@@ -153,7 +162,7 @@ def main() -> None:
 
     if args.long_aug:
         rng = random.Random(args.seed + 1)
-        long_items = lengthen(all_items, args.long_aug, rng)
+        long_items = lengthen(all_items, args.long_aug, rng, args.long_budget)
         n_before = len(rows)
         for item in long_items:
             rows.extend(to_rows(item))
