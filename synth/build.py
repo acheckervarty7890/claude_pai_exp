@@ -143,6 +143,16 @@ def main() -> None:
         "sets sit at 39-247 median tokens, so ~800 lands in that band; the "
         "original 3600 overshot it by several times.",
     )
+    ap.add_argument(
+        "--long-mix",
+        nargs="+",
+        default=None,
+        metavar="N:BUDGET",
+        help="Augment at several budgets at once, e.g. '120:3600 120:800'. The "
+        "eval sets disagree about what length they want -- `a` needs a lot of "
+        "long context and `i` is destroyed by it -- so a single global budget "
+        "cannot serve both. Overrides --long-aug/--long-budget when given.",
+    )
     args = ap.parse_args()
 
     rows = []
@@ -160,13 +170,26 @@ def main() -> None:
         all_items.extend(mod.PAIRS)
         print(f"{mod_name}: {len(mod.PAIRS)} pairs -> {len(rows) - n_before} rows")
 
-    if args.long_aug:
-        rng = random.Random(args.seed + 1)
-        long_items = lengthen(all_items, args.long_aug, rng, args.long_budget)
+    if args.long_mix:
+        specs = [tuple(int(x) for x in spec.split(":")) for spec in args.long_mix]
+    elif args.long_aug:
+        specs = [(args.long_aug, args.long_budget)]
+    else:
+        specs = []
+
+    # Each budget gets its own rng stream so adding a band to the mix does not
+    # resample the bands already there -- otherwise every run would be a fresh
+    # draw and no two versions would be comparable.
+    for n, budget in specs:
+        rng = random.Random(args.seed + 1 + budget)
+        long_items = lengthen(all_items, n, rng, budget)
         n_before = len(rows)
         for item in long_items:
             rows.extend(to_rows(item))
-        print(f"long-aug: {len(long_items)} pairs -> {len(rows) - n_before} rows")
+        print(
+            f"long-aug @{budget}: {len(long_items)} pairs "
+            f"-> {len(rows) - n_before} rows"
+        )
 
     random.Random(args.seed).shuffle(rows)
 
