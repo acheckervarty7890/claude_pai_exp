@@ -4,9 +4,16 @@
 #   bash seed_variance.sh <tag> <training-jsonl> <seed> [seed ...]
 #
 # The recipes are separated by ~0.01 mean AUROC, which is only meaningful if
-# refitting the *same* data varies by less than that. Activations depend on the
-# data and the model, not on the seed, so every run here reuses the cached
-# train_<tag>.pt and eval.pt -- no 27B extraction, seconds per seed.
+# refitting the *same* data varies by less than that.
+#
+# Each seed gets its OWN train activation file. `train.py` seeds the RNG before
+# create_train_test_split, so the split membership and order are seed-dependent,
+# while tuberlens' get_activations returns a cached tensor whenever save_path
+# exists without checking that the inputs still match. Sharing one cache across
+# seeds therefore pairs one split's activations with another split's labels and
+# silently trains on mislabelled data -- it scores ~0.5, which looks like a
+# catastrophic result rather than the bug it is. The eval cache is safe to share
+# (evaluation.py neither shuffles nor subsamples), so only training re-extracts.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -26,7 +33,7 @@ for SEED in "$@"; do
     --neg_class_label "$NEG_LABEL" \
     --concept_description "$CONCEPT_DESC" \
     --output_probe_path "probes/probe_${TAG}_s${SEED}.pkl" \
-    --activations_save_path "${ACT_DIR}/train_${TAG}.pt" \
+    --activations_save_path "${ACT_DIR}/train_${TAG}_s${SEED}.pt" \
     --seed "$SEED" 2>&1 | tail -2
 
   .venv/bin/python evaluation.py \
