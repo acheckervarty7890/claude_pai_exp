@@ -17,6 +17,26 @@ POS = "assistant_follows_the_instruction"
 NEG = "assistant_does_not_follow_the_instruction"
 
 
+def normalize(msgs: list[dict]) -> list[dict]:
+    """Coerce a message list into what the gemma-3 chat template accepts.
+
+    The template requires strictly alternating user/assistant turns after an
+    optional system message, and has no `tool` role. Tool results become user
+    turns, and any resulting run of same-role messages is merged.
+    """
+    out: list[dict] = []
+    for msg in msgs:
+        role = "user" if msg["role"] == "tool" else msg["role"]
+        if out and out[-1]["role"] == role and role != "system":
+            out[-1] = {
+                "role": role,
+                "content": out[-1]["content"] + "\n\n" + msg["content"],
+            }
+        else:
+            out.append({"role": role, "content": msg["content"]})
+    return out
+
+
 def to_rows(item: dict) -> list[dict]:
     """Turn one contrastive item into a compliant row and a non-compliant row."""
     base = []
@@ -28,9 +48,28 @@ def to_rows(item: dict) -> list[dict]:
 
     rows = []
     for key, label in (("pos", POS), ("neg", NEG)):
-        msgs = base + [{"role": "assistant", "content": item[key]}]
+        msgs = normalize(base + [{"role": "assistant", "content": item[key]}])
         rows.append({"inputs": json.dumps(msgs, ensure_ascii=False), "labels": label})
     return rows
+
+
+def validate(rows: list[dict]) -> None:
+    """Render every row through the real chat template before writing.
+
+    A row the template rejects kills the training run partway through activation
+    extraction, so it is worth catching here rather than an hour in.
+    """
+    from transformers import AutoTokenizer
+
+    tok = AutoTokenizer.from_pretrained("google/gemma-3-27b-it")
+    for i, row in enumerate(rows):
+        msgs = json.loads(row["inputs"])
+        try:
+            tok.apply_chat_template([msgs], tokenize=False)
+        except Exception as exc:
+            roles = [m["role"] for m in msgs]
+            raise SystemExit(f"row {i} rejected by chat template: {exc}\nroles: {roles}")
+    print(f"validated {len(rows)} rows against the chat template")
 
 
 def lengthen(items: list[dict], n: int, rng: random.Random) -> list[dict]:
@@ -77,7 +116,9 @@ def lengthen(items: list[dict], n: int, rng: random.Random) -> list[dict]:
         if len(history) < 4:  # at least two prior exchanges
             continue
 
-        out.append({**target, "pre": list(target.get("pre", [])) + history})
+        # History goes in front of the item's own prior turns so the target
+        # exchange stays contiguous with the instruction it belongs to.
+        out.append({**target, "pre": history + list(target.get("pre", []))})
     return out
 
 
@@ -123,6 +164,8 @@ def main() -> None:
     counts = {POS: 0, NEG: 0}
     for r in rows:
         counts[r["labels"]] += 1
+
+    validate(rows)
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
