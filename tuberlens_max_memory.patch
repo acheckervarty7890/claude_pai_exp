@@ -1,0 +1,71 @@
+diff --git a/src/tuberlens/config.py b/src/tuberlens/config.py
+index a5e60ae..5a3d242 100644
+--- a/src/tuberlens/config.py
++++ b/src/tuberlens/config.py
+@@ -16,7 +16,12 @@ class GlobalSettings(BaseSettings):
+     )  # Device for activations, probes, etc.
+     DTYPE: torch.dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+     BATCH_SIZE: int = 1
+-    MODEL_MAX_MEMORY: dict[str, int | None] = Field(default_factory=dict)
++    # Per-model memory pinning passed straight to `from_pretrained(max_memory=...)`.
++    # Maps a model name to an accelerate max_memory spec, e.g.
++    #   {"google/gemma-3-27b-it": {"cuda:0": "22GiB", "cpu": "45GiB"}}
++    MODEL_MAX_MEMORY: dict[str, dict[str, str | int] | None] = Field(
++        default_factory=dict
++    )
+     CACHE_DIR: str | None = None
+     DEFAULT_MODEL: str = "gpt-4o"
+     ACTIVATIONS_DIR: Path = DATA_DIR / "activations"
+diff --git a/src/tuberlens/model.py b/src/tuberlens/model.py
+index 846e2a6..7c815e8 100644
+--- a/src/tuberlens/model.py
++++ b/src/tuberlens/model.py
+@@ -167,6 +167,32 @@ class HookedModel:
+             hook.remove()
+ 
+ 
++def _normalize_max_memory(
++    max_memory: dict[str, Any] | None,
++) -> dict[Any, Any] | None:
++    """Normalize a max_memory spec into the key form accelerate expects.
++
++    accelerate identifies GPUs by integer index, so keys like "cuda:0" or "0"
++    have to become 0. Non-GPU keys ("cpu", "disk") are passed through.
++    """
++    if not max_memory:
++        return None
++
++    normalized: dict[Any, Any] = {}
++    for device, size in max_memory.items():
++        key: Any = device
++        if isinstance(device, str):
++            stripped = device.strip()
++            if stripped.startswith(("cuda:", "xpu:")):
++                stripped = stripped.split(":", 1)[1]
++            if stripped.isdigit():
++                key = int(stripped)
++            else:
++                key = stripped
++        normalized[key] = size
++    return normalized
++
++
+ def tokenize_inputs(
+     tokenizer: PreTrainedTokenizerBase,
+     dialogues: Sequence[Input],
+@@ -266,8 +292,13 @@ class LLMModel:
+             "device_map": llm_device,
+             "torch_dtype": global_settings.DTYPE,
+             "cache_dir": global_settings.CACHE_DIR,
+-            "max_memory": global_settings.MODEL_MAX_MEMORY.get(
+-                global_settings.DEFAULT_MODEL
++            # Pin memory for the model actually being loaded, falling back to the
++            # configured default model's entry.
++            "max_memory": _normalize_max_memory(
++                global_settings.MODEL_MAX_MEMORY.get(
++                    model_name,
++                    global_settings.MODEL_MAX_MEMORY.get(global_settings.DEFAULT_MODEL),
++                )
+             ),
+             **(model_kwargs or {}),
+         }
