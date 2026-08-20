@@ -15,3 +15,10 @@ __pycache__/
 # Local baseline snapshots (baseline state is preserved in git history on main)
 *.baseline.pkl
 *.baseline.csv
+
+# Downloaded activation caches and locally computed activations (tens of GB)
+dev_activations_*/
+eval_activations_*/
+activations/
+kaggle/
+hf-token.txt
