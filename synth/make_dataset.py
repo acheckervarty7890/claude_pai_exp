@@ -14,7 +14,9 @@ from pathlib import Path
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
 
-import pools, pools_tool, pools_clinical, pools_mt, pools_hh  # noqa: E402
+import pools, pools_clinical, pools_clinical2, pools_clinical3  # noqa: E402
+import pools_mt, pools_mt2, pools_hh, pools_hh2  # noqa: E402
+import pools_tool, pools_tool2, pools_tool3  # noqa: E402
 from func_bank import BANK  # noqa: E402
 
 POS, NEG = "high-stakes", "low-stakes"
@@ -78,11 +80,15 @@ def check_alternating(rows):
 
 def collect(extra_modules=()):
     high, low = [], []
-    for mod in (pools, pools_clinical, pools_mt, pools_hh) + tuple(extra_modules):
+    plain_mods = (pools, pools_clinical, pools_clinical2, pools_clinical3,
+                  pools_mt, pools_mt2, pools_hh, pools_hh2)
+    tool_mods = (pools_tool, pools_tool2, pools_tool3)
+    for mod in plain_mods + tuple(extra_modules):
         high += [plain(t) for t in mod.HIGH]
         low += [plain(t) for t in mod.LOW]
-    high += tool_rows(pools_tool.HIGH)
-    low += tool_rows(pools_tool.LOW)
+    for mod in tool_mods:
+        high += tool_rows(mod.HIGH)
+        low += tool_rows(mod.LOW)
     check_alternating(high)
     check_alternating(low)
     return high, low
