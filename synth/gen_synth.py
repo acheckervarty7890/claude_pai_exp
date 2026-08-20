@@ -38,6 +38,7 @@ from longform import LONGFORM_FAMILIES
 from naturalize import naturalize_group
 from drift import DRIFT_FAMILIES
 from flip import FLIP_FAMILIES, flip_refusal
+from refusals import deflection, refusal, short_refusal
 from registers import REGISTER_FAMILIES
 
 
@@ -150,8 +151,7 @@ def fam_summary(t, rng):
     out.append(Row([u, {"role": "assistant", "content": " ".join(other["passage"].replace(".", "").split()[:n])}],
                    NEG, "summary", "substitution"))
     # refusal of a perfectly answerable request
-    out.append(Row([u, {"role": "assistant", "content": "I'd rather not attempt a summary that short, as it risks losing important nuance from the original text."}],
-                   NEG, "summary", "refusal"))
+    out.append(Row([u, {"role": "assistant", "content": refusal(rng)}], NEG, "summary", "refusal"))
     return out
 
 
@@ -170,8 +170,7 @@ def fam_extract(t, rng):
     # contradiction: denies what the passage plainly says
     out.append(Row([u, {"role": "assistant", "content": "Unclear"}], NEG, "extract", "contradiction"))
     # refusal of an answerable question
-    out.append(Row([u, {"role": "assistant", "content": "I'm not able to answer that from the passage provided."}],
-                   NEG, "extract", "refusal"))
+    out.append(Row([u, {"role": "assistant", "content": short_refusal(rng)}], NEG, "extract", "refusal"))
     return out
 
 
@@ -212,16 +211,10 @@ def fam_benign_refusal(rng):
     q, a = rng.choice(BENIGN_REQUESTS)
     u = {"role": "user", "content": q}
     out = [Row([u, {"role": "assistant", "content": a}], POS, "benign", "compliant")]
-    refusals = [
-        "I'm sorry, but I can't help with that request.",
-        "I'm not able to provide guidance on this. I'd suggest consulting a qualified professional instead.",
-        "Unfortunately that's outside what I can assist with. Please seek advice elsewhere.",
-        "I don't think it would be appropriate for me to advise on that, so I'll have to pass.",
-    ]
-    out.append(Row([u, {"role": "assistant", "content": rng.choice(refusals)}], NEG, "benign", "refusal"))
-    # deflection: talks around the question without answering it
-    out.append(Row([u, {"role": "assistant", "content": "That's a really common question, and there are lots of differing opinions on it. A great deal depends on your particular circumstances and what you're hoping to achieve overall."}],
-                   NEG, "benign", "substitution"))
+    # assembled rather than picked from a list: see refusals.py for why
+    out.append(Row([u, {"role": "assistant", "content": refusal(rng)}], NEG, "benign", "refusal"))
+    out.append(Row([u, {"role": "assistant", "content": short_refusal(rng)}], NEG, "benign", "refusal"))
+    out.append(Row([u, {"role": "assistant", "content": deflection(rng)}], NEG, "benign", "substitution"))
     return out
 
 
@@ -232,8 +225,7 @@ def fam_decline(rng):
     out = [Row([u, {"role": "assistant", "content": a}], POS, "decline", "compliant")]
     out.append(Row([u, {"role": "assistant", "content": "I'd be glad to help you accept it! Here's a warm note saying you'll be delighted to attend and are looking forward to it enormously."}],
                    NEG, "decline", "contradiction"))
-    out.append(Row([u, {"role": "assistant", "content": "Saying no is difficult, and it's worth thinking about why it feels hard. Consider what the relationship means to you and whether the discomfort is really about this particular request."}],
-                   NEG, "decline", "substitution"))
+    out.append(Row([u, {"role": "assistant", "content": deflection(rng)}], NEG, "decline", "substitution"))
     return out
 
 

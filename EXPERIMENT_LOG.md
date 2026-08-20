@@ -49,6 +49,7 @@ Mean AUROC across the 7 splits (higher is better; 0.5 = chance).
 | baseline | shipped seed only | 50 | 0.4808 | **0.4991** |
 | v1s | seed + short paired synthetic | 804 | 0.7232 | **0.7652** |
 | v3s | + long-form multi-turn | 2434 | 0.7141 | **0.7806** |
+| v6s | + drift/omission families | 3248 | 0.7167 | 0.7534 |
 
 The shipped seed produces a probe at **exactly chance**. Diagnosis below.
 
@@ -226,3 +227,60 @@ requests), since refusal supply was the binding constraint on total dataset size
 
 Final v7 composition: context_drift 23%, substitution 23%, omission 14%, refusal 14%,
 contradiction 14%; response-length corr **+0.015**, prompt-length corr **+0.008**.
+
+
+## Iteration 3 — drift families (v6s), eval 0.7806 -> 0.7534 (regression)
+
+| eval split | v1s | v3s | v6s | v3->v6 |
+|---|---|---|---|---|
+| `bbq_substitution` | 0.715 | 0.819 | **0.874** | +0.056 |
+| `oig_omission` | 0.700 | 0.625 | 0.666 | +0.041 |
+| `hc_context_drift` | 0.649 | 0.805 | 0.811 | +0.005 |
+| `anthropic_harmless_refusal` | **0.980** | 0.859 | 0.793 | -0.066 |
+| `oig_context_drift` | 0.640 | 0.616 | **0.546** | -0.070 |
+| `mm_substitution` | 0.808 | 0.818 | 0.743 | -0.075 |
+| `hc_contradiction` | 0.865 | **0.922** | 0.842 | -0.080 |
+
+Tripling the drift data made `oig_context_drift` *worse* (0.616 -> 0.546). That ruled
+out "not enough drift data" and pointed somewhere else.
+
+### The actual problem: response diversity, not quantity
+
+Counting unique assistant responses per failure mode:
+
+| mode | rows | unique responses | ratio |
+|---|---|---|---|
+| **refusal** | 275 | **17** | **0.06** |
+| substitution | 432 | 126 | 0.29 |
+| omission | 275 | 82 | 0.30 |
+| context_drift | 432 | 177 | 0.41 |
+| contradiction | 275 | 106 | 0.39 |
+| format | 137 | 134 | 0.98 |
+
+Refusal had **17 distinct sentences across 275 rows** — every refusal row was one of
+seventeen strings repeated sixteen times. The probe was memorising those strings, not
+learning refusal, which is why `anthropic_harmless_refusal` fell steadily (0.980 ->
+0.859 -> 0.793) as refusal rows grew *more numerous but no more varied*. The same
+applies, less severely, to drift: eight hand-written scenario paragraphs cannot teach
+a general notion of ignoring context.
+
+Adding rows to a low-diversity mode is worse than useless — it increases the weight
+of memorised text in the loss without adding information.
+
+### Fix: assemble failure text combinatorially
+
+`synth/refusals.py` builds refusals from independent slots (opener x core x reason x
+redirect x closer, ~11x11x9x9x8), plus deflections and generic advice on the same
+principle. Drift answers now mix the hand-written context-ignoring paragraph with
+assembled generic advice, and omission drops a *random* requirement rather than
+always the last.
+
+| mode | ratio before | ratio after |
+|---|---|---|
+| refusal | 0.06 | **0.47** |
+| context_drift | 0.34 | **0.62** |
+| omission | 0.28 | **0.45** |
+| substitution | 0.45 | 0.51 |
+
+v7 (quotas, old low-diversity text) was cancelled one minute into training in favour
+of **v8** = quotas + combinatorial diversity, since v8 strictly dominates it.

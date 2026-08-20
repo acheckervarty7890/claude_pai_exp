@@ -22,6 +22,7 @@ from __future__ import annotations
 import random
 
 from banks import NEG_LABEL as NEG, POS_LABEL as POS, Row
+from refusals import generic_advice
 
 # Each scenario: an opening situation with hard constraints, a follow-up exchange,
 # a final question, and two answers — one that respects the constraints, one that
@@ -267,6 +268,21 @@ def _pad_to(text: str, target: int, rng: random.Random) -> str:
     return out
 
 
+def _drift_answer(sc: dict, rng: random.Random) -> str:
+    """A context-ignoring answer, assembled so the mode is not eight fixed paragraphs.
+
+    Half the time it is the hand-written generic answer for the scenario; otherwise it
+    is generic advice stitched to a fragment of it. Both ignore the stated constraints;
+    varying the surface stops the probe memorising a small set of strings, which is
+    what held the drift modes to a 0.34 uniqueness ratio.
+    """
+    if rng.random() < 0.5:
+        return sc["drift"]
+    head = sc["drift"].split(". ")[0] + "."
+    tail = generic_advice(rng, n=rng.choice([2, 3]))
+    return f"{head} {tail}" if rng.random() < 0.5 else f"{tail} {head}"
+
+
 def drift_scenario(_t, rng: random.Random):
     """Long conversation whose final answer either uses or ignores established context."""
     sc = rng.choice(SCENARIOS)
@@ -279,7 +295,8 @@ def drift_scenario(_t, rng: random.Random):
     ]
     return [
         Row(msgs + [{"role": "assistant", "content": sc["good"]}], POS, "drift_ctx", "compliant"),
-        Row(msgs + [{"role": "assistant", "content": sc["drift"]}], NEG, "drift_ctx", "context_drift"),
+        Row(msgs + [{"role": "assistant", "content": _drift_answer(sc, rng)}],
+            NEG, "drift_ctx", "context_drift"),
     ]
 
 
@@ -289,7 +306,8 @@ def drift_scenario_short(_t, rng: random.Random):
     msgs = [{"role": "user", "content": sc["setup"] + " " + sc["final_q"]}]
     return [
         Row(msgs + [{"role": "assistant", "content": sc["good"]}], POS, "drift_ctx", "compliant"),
-        Row(msgs + [{"role": "assistant", "content": sc["drift"]}], NEG, "drift_ctx", "context_drift"),
+        Row(msgs + [{"role": "assistant", "content": _drift_answer(sc, rng)}],
+            NEG, "drift_ctx", "context_drift"),
     ]
 
 
@@ -300,7 +318,8 @@ def omission_brief(_t, rng: random.Random):
     parts = b["parts"]
     full = " ".join(parts)
     dropped = rng.randint(1, 2)
-    kept = parts[: len(parts) - dropped]
+    idx = sorted(rng.sample(range(len(parts)), len(parts) - dropped))
+    kept = [parts[i] for i in idx]
     padded = _pad_to(" ".join(kept), len(full), rng)
     return [
         Row([u, {"role": "assistant", "content": full}], POS, "omission_brief", "compliant"),
@@ -321,7 +340,8 @@ def omission_brief_multiturn(_t, rng: random.Random):
         {"role": "user", "content": "Great, go ahead and write it."},
     ]
     full = " ".join(parts)
-    kept = _pad_to(" ".join(parts[:-1]), len(full), rng)
+    drop = rng.randrange(len(parts))
+    kept = _pad_to(" ".join(p for i, p in enumerate(parts) if i != drop), len(full), rng)
     return [
         Row(msgs + [{"role": "assistant", "content": full}], POS, "omission_brief", "compliant"),
         Row(msgs + [{"role": "assistant", "content": kept}], NEG, "omission_brief", "omission"),

@@ -14,6 +14,7 @@ from __future__ import annotations
 import random
 
 from banks import BENIGN_REQUESTS, FORBIDDEN, NEG_LABEL as NEG, POS_LABEL as POS, Row, TOPICS
+from refusals import deflection, refusal, short_refusal
 
 DETAIL_TAILS = [
     "This is the part people most often get wrong in practice.",
@@ -109,9 +110,7 @@ def lf_multipart_qa(t, rng):
     out.append(Row([u, {"role": "assistant", "content": drift}], NEG, "lf_multipart", "context_drift"))
 
     # refusal of a plainly answerable document task
-    out.append(Row([u, {"role": "assistant",
-                        "content": "I'm not able to work through the document and answer these for you."}],
-                   NEG, "lf_multipart", "refusal"))
+    out.append(Row([u, {"role": "assistant", "content": refusal(rng)}], NEG, "lf_multipart", "refusal"))
     return out
 
 
@@ -146,10 +145,7 @@ def lf_constrained_summary(t, rng):
         # violations that are SHORTER than compliance
         out.append(Row([u, {"role": "assistant", "content": _bulleted([" ".join(x.split()[:5]) for x in safe[:n - 1]])}],
                        NEG, "lf_summary", "omission"))
-        out.append(Row([u, {"role": "assistant",
-                            "content": "The document is quite dense, so a bullet summary would lose too much. "
-                                       "I'd suggest reading it in full instead."}],
-                       NEG, "lf_summary", "refusal"))
+        out.append(Row([u, {"role": "assistant", "content": refusal(rng)}], NEG, "lf_summary", "refusal"))
         return out
 
     instr = (f"Summarise the document below in exactly {n} bullet points. "
@@ -248,23 +244,10 @@ def lf_benign_refusal_chat(t, rng):
     ]
     good = a.split(". ")[0] + "." if terse else a
     out = [Row(msgs + [{"role": "assistant", "content": good}], POS, "lf_chat", "compliant")]
-    short_refusals = [
-        "I'm sorry, but I'm not able to help with that one.",
-        "That's not something I can assist with, unfortunately.",
-        "I'd rather not advise on that.",
-    ]
-    long_refusal = (
-        "I appreciate you asking, but this isn't something I'm comfortable giving guidance on. "
-        "There are a lot of variables involved and the wrong suggestion could easily cause problems, "
-        "so I'd rather not speculate. You'd be much better served by someone who can look at your "
-        "particular situation properly.")
-    out.append(Row(msgs + [{"role": "assistant", "content": rng.choice(short_refusals)}],
+    out.append(Row(msgs + [{"role": "assistant", "content": short_refusal(rng)}],
                    NEG, "lf_chat", "refusal"))
-    out.append(Row(msgs + [{"role": "assistant", "content": long_refusal}], NEG, "lf_chat", "refusal"))
-    out.append(Row(msgs + [{"role": "assistant", "content":
-                            "There's a lot of conflicting advice out there on this, and honestly it depends "
-                            "enormously on your situation. Different people swear by completely different "
-                            "approaches, so it's hard to generalise usefully."}],
+    out.append(Row(msgs + [{"role": "assistant", "content": refusal(rng)}], NEG, "lf_chat", "refusal"))
+    out.append(Row(msgs + [{"role": "assistant", "content": deflection(rng)}],
                    NEG, "lf_chat", "substitution"))
     return out
 
