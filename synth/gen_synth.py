@@ -37,7 +37,7 @@ from banks import (BENIGN_REQUESTS, DECLINE_REQUESTS, FORBIDDEN, NEG_LABEL as NE
 from longform import LONGFORM_FAMILIES
 from naturalize import naturalize_group
 from drift import DRIFT_FAMILIES
-from flip import FLIP_FAMILIES
+from flip import FLIP_FAMILIES, flip_refusal
 from registers import REGISTER_FAMILIES
 
 
@@ -341,7 +341,8 @@ def fam_single_sentence(t, rng):
 
 def generate(n_target: int, seed: int, longform_weight: int = 3,
              naturalize: bool = True, register_weight: int = 1,
-             flip_weight: int = 2, drift_weight: int = 2) -> list[Row]:
+             flip_weight: int = 2, drift_weight: int = 2,
+             refusal_weight: int = 2) -> list[Row]:
     rng = random.Random(seed)
     rows: list[Row] = []
     topic_fams = [fam_numbered_list, fam_bullets, fam_summary, fam_extract, fam_forbidden_word,
@@ -369,8 +370,13 @@ def generate(n_target: int, seed: int, longform_weight: int = 3,
         # eval splits (context drift 0.640/0.649, omission 0.700).
         for _ in range(drift_weight):
             emit(rng.choice(DRIFT_FAMILIES)(t, rng))
-        emit(fam_benign_refusal(rng))
-        emit(fam_decline(rng))
+        # refusal is one whole eval split but the thinnest supply, so it is drawn
+        # several times per round -- otherwise the mode quota below has to shrink the
+        # entire dataset to hit its refusal share.
+        for _ in range(refusal_weight):
+            emit(fam_benign_refusal(rng))
+            emit(fam_decline(rng))
+            emit(flip_refusal(rng.choice(TOPICS), rng))
     # de-duplicate on exact conversation text
     seen, uniq = set(), []
     for r in rows:
@@ -379,6 +385,105 @@ def generate(n_target: int, seed: int, longform_weight: int = 3,
             seen.add(k)
             uniq.append(r)
     return uniq
+
+
+
+# Share of negatives to aim for per failure mode, proportional to how many eval
+# splits test each one: substitution and context drift have two splits each
+# (bbq_/mm_ and hc_/oig_), refusal, contradiction and omission one each. The
+# remainder goes to the format-style violations the original seed was made of.
+#
+# This exists because mode share was previously whatever fell out of the family
+# weights, and it drifted badly: in the v3 mix refusal was 4.1% of negatives, and
+# refusal duly regressed from 0.980 to 0.859 on the eval split that tests it.
+CORE_MODES = ("substitution", "context_drift", "refusal", "contradiction", "omission")
+
+MODE_QUOTA = {
+    "substitution": 0.22,
+    "context_drift": 0.22,
+    "refusal": 0.14,
+    "contradiction": 0.14,
+    "omission": 0.14,
+    "format": 0.07,
+    "overrun": 0.05,
+    "preamble": 0.02,
+}
+
+
+def enforce_mode_quota(rows: list[Row], rng: random.Random,
+                       quota: dict | None = None) -> list[Row]:
+    """Resample negatives toward `quota`, then length-match positives to them.
+
+    Two-step so neither property is lost: the quota fixes *which failure modes* the
+    probe sees, and the length-stratified positive match keeps response length
+    uninformative about the label afterwards.
+    """
+    quota = quota or MODE_QUOTA
+    pos = [r for r in rows if r.label == POS]
+    neg = [r for r in rows if r.label == NEG]
+    if not pos or not neg:
+        return rows
+
+    by_mode = collections.defaultdict(list)
+    for r in neg:
+        by_mode[r.mode].append(r)
+    for v in by_mode.values():
+        rng.shuffle(v)
+
+    # Size the negative set by the *core* modes only -- the five failure families the
+    # eval splits actually test. Sizing by every mode let a 2%-share rarity
+    # (preamble) shrink the dataset by half; sizing by whichever mode had surplus let
+    # refusal balloon to 28%. Core-only keeps the proportions that matter honest and
+    # lets the incidental format-style modes fill in with whatever exists.
+    core = [m for m in CORE_MODES if quota.get(m)]
+    budget = min(len(neg), len(pos))
+    feasible = min((len(by_mode.get(m, [])) / quota[m] for m in core), default=budget)
+    budget = int(min(budget, feasible))
+
+    take = {}
+    for m, q in quota.items():
+        take[m] = min(int(budget * q), len(by_mode.get(m, [])))
+
+    kept_neg = []
+    for m, n in take.items():
+        kept_neg.extend(by_mode.get(m, [])[:n])
+
+    kept_pos = _match_lengths(pos, kept_neg, rng)
+    out = kept_pos + kept_neg
+    rng.shuffle(out)
+    return out
+
+
+def _match_lengths(pool: list[Row], target: list[Row], rng: random.Random,
+                   bins: int = 10) -> list[Row]:
+    """Pick from `pool` so its response-length histogram mirrors `target`'s."""
+    def alen(r):
+        return len(r.messages[-1]["content"])
+
+    lens = sorted(alen(r) for r in target)
+    edges = [lens[int(len(lens) * i / bins)] for i in range(1, bins)]
+
+    def bucket(r):
+        v = alen(r)
+        return sum(v > e for e in edges)
+
+    want = collections.Counter(bucket(r) for r in target)
+    have = collections.defaultdict(list)
+    for r in pool:
+        have[bucket(r)].append(r)
+    for v in have.values():
+        rng.shuffle(v)
+
+    out, deficit = [], 0
+    for b, n in want.items():
+        got = have[b][:n]
+        out.extend(got)
+        deficit += n - len(got)
+    if deficit:
+        leftover = [r for b in have for r in have[b][want.get(b, 0):]]
+        rng.shuffle(leftover)
+        out.extend(leftover[:deficit])
+    return out
 
 
 def _pick_across_modes(rows: list[Row], k: int, rng: random.Random) -> list[Row]:
@@ -489,6 +594,8 @@ def main():
     ap.add_argument("--include-seed", type=Path, default=None,
                     help="original seed jsonl to prepend (kept verbatim)")
     ap.add_argument("--no-balance", action="store_true")
+    ap.add_argument("--no-quota", action="store_true",
+                    help="skip failure-mode quota rebalancing")
     ap.add_argument("--no-naturalize", action="store_true",
                     help="skip the user-turn surface-variation layer")
     ap.add_argument("--register-weight", type=int, default=1,
@@ -497,6 +604,8 @@ def main():
                     help="context-flip (same response, opposite label) draws per round")
     ap.add_argument("--drift-weight", type=int, default=2,
                     help="context-drift / long-context omission draws per round")
+    ap.add_argument("--refusal-weight", type=int, default=2,
+                    help="benign-refusal / decline / refusal-flip draws per round")
     ap.add_argument("--longform-weight", type=int, default=3,
                     help="long-form family draws per generation round (0 = v1 behaviour)")
     args = ap.parse_args()
@@ -506,9 +615,12 @@ def main():
                     naturalize=not args.no_naturalize,
                     register_weight=args.register_weight,
                     flip_weight=args.flip_weight,
-                    drift_weight=args.drift_weight)
+                    drift_weight=args.drift_weight,
+                    refusal_weight=args.refusal_weight)
     if not args.no_balance:
         rows = balance_by_length(rows, rng)
+    if not args.no_quota:
+        rows = enforce_mode_quota(rows, rng)
     rng.shuffle(rows)
     rows = rows[: args.n]
     # trim to a class-balanced set
@@ -540,6 +652,10 @@ def main():
     print(f"  turns: {dict(sorted(turns.items()))}")
     print(f"  response-length/label corr: {length_corr(rows):+.3f}  (seed is about +0.4)")
     print(f"  prompt-length/label corr:   {prompt_corr(rows):+.3f}")
+    modes = collections.Counter(r.mode for r in rows if r.label == NEG)
+    tot = sum(modes.values()) or 1
+    print("  negative-mode mix: " + ", ".join(
+        f"{m} {100 * n / tot:.0f}%" for m, n in modes.most_common()))
     for (f_, m), c in sorted(fam.items()):
         print(f"    {f_:16s} {m:16s} {c}")
 

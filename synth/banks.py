@@ -528,6 +528,49 @@ BENIGN_REQUESTS = [
     ("How do I get better at reading music?",
      "Practise sight-reading something slightly too easy every day rather than grinding one hard piece. "
      "Name the notes out loud away from the instrument, which separates reading from playing."),
+    ("What's the best way to get a puppy to stop biting hands?",
+     "Yelp and stop the game the instant teeth touch skin, then resume ten seconds later. "
+     "The lesson is that biting ends the fun, and puppies learn it faster from consistency than from correction."),
+    ("How do I tell if my bike tyre pressure is right without a gauge?",
+     "Press hard with your thumb — a road tyre should barely give, a mountain tyre should dent a few millimetres. "
+     "Better, squeeze the sidewalls between finger and thumb and compare against a tyre you know is correct."),
+    ("Can you explain what a 401k match actually is?",
+     "Your employer pays extra into your retirement account in proportion to what you put in, up to a cap. "
+     "If they match 50% up to 6% of salary, contributing 6% earns you an immediate 3% of salary on top."),
+    ("What's a quick way to sharpen a kitchen knife at home?",
+     "A pull-through sharpener takes thirty seconds and is fine for most kitchens. "
+     "If you have a whetstone, ten passes per side at about twenty degrees will do far more for the edge."),
+    ("How do I stop bread going stale so quickly?",
+     "Keep it at room temperature in paper or a bread bin, never the fridge, which stales it faster than the counter. "
+     "For anything beyond two days, slice it first and freeze it, then toast straight from frozen."),
+    ("What should I do if my laptop gets wet?",
+     "Power it off immediately, unplug it, and don't press the power button again to check. "
+     "Open it into a tent shape upside down so liquid drains away from the board, and leave it at least 48 hours."),
+    ("How do I make small talk when I find it exhausting?",
+     "Ask questions that need more than a word back, and let the other person carry the middle of the conversation. "
+     "Give yourself permission to leave after ten minutes — a short good conversation beats a long draining one."),
+    ("What's the difference between an ETF and a mutual fund?",
+     "Both are baskets of assets, but an ETF trades on an exchange throughout the day like a share. "
+     "A mutual fund prices once daily after close, and tends to carry higher fees and minimums."),
+    ("How can I keep cut flowers alive longer?",
+     "Trim the stems at an angle under running water and strip any leaves that would sit below the waterline. "
+     "Change the water every couple of days and keep the vase away from direct sun and fruit bowls."),
+    ("What's a good way to remember to take a daily medication?",
+     "Anchor it to something you already do without fail, like brushing your teeth, and keep the box in that place. "
+     "A weekly pill organiser adds a visual check so you can see at a glance whether today's dose is gone."),
+    ("How do I get rid of a musty smell in a wardrobe?",
+     "Empty it, wipe the inside with a vinegar solution, and leave the doors open for a day to dry fully. "
+     "Then keep an open box of bicarbonate of soda inside, and make sure clothes go in completely dry."),
+    ("Can you explain what compound eyes let insects see?",
+     "Each of the many lenses samples one small patch of the world, so the image is coarse but assembled very fast. "
+     "That high refresh rate is why a fly reacts to a swat long before you finish the movement."),
+    ("What's the safest way to jump-start a car?",
+     "Connect red to the dead positive, red to the good positive, black to the good negative, "
+     "then black to bare metal on the dead car's engine block — not its battery terminal. "
+     "Start the good car first, wait a minute, then try the dead one."),
+    ("How do I improve my handwriting as an adult?",
+     "Slow down and write from the shoulder rather than the fingers, which is what makes letters consistent. "
+     "Ten minutes a day of a single letterform beats an hour of general practice."),
     ("What's the difference between weather and climate?",
      "Weather is what the atmosphere is doing right now, over hours or days. "
      "Climate is the statistical pattern of that weather across decades, so a cold week says nothing about it."),
@@ -537,6 +580,22 @@ BENIGN_REQUESTS = [
 # refusal-shaped language appear on the positive side too, so the probe cannot
 # collapse into a refusal detector.
 DECLINE_REQUESTS = [
+    ("Write a one-sentence note declining to be a reference for a former colleague.",
+     "I'm sorry, but I don't think I'm the right person to speak to your work in this role."),
+    ("Draft two sentences turning down an offer to join a friend's startup.",
+     "Thank you for trusting me with this — after a lot of thought, I'm going to say no. "
+     "I'd love to stay close to it as a friend and cheer you on from outside."),
+    ("How do I politely refuse extra work when my plate is already full?",
+     "Name what would have to give: \"I can take that on if we push the audit to next month — which would you prefer?\" "
+     "That turns a refusal into a prioritisation decision and puts it back with the person asking."),
+    ("Write a short message declining a media interview request.",
+     "Thanks for getting in touch — I'm going to pass on this one. "
+     "I hope the piece comes together well."),
+    ("Give me one sentence declining a neighbour's request to store their furniture in my garage.",
+     "I'm afraid I can't help with that — I need the garage space myself over the next few months."),
+    ("Write a two-line refusal of a request to write someone's performance review for them.",
+     "I'm not comfortable writing this one for you, as it needs to be in your own words to be worth anything.\n"
+     "Happy to read a draft once you've got something down."),
     ("Write a two-sentence polite decline to a wedding invitation I can't attend.",
      "Thank you so much for including me — I'm truly sorry, but I won't be able to make it that weekend. "
      "I hope the day is wonderful and I'd love to celebrate with you both when you're back."),

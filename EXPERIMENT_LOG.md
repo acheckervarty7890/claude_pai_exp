@@ -48,6 +48,7 @@ Mean AUROC across the 7 splits (higher is better; 0.5 = chance).
 |---|---|---|---|---|
 | baseline | shipped seed only | 50 | 0.4808 | **0.4991** |
 | v1s | seed + short paired synthetic | 804 | 0.7232 | **0.7652** |
+| v3s | + long-form multi-turn | 2434 | 0.7141 | **0.7806** |
 
 The shipped seed produces a probe at **exactly chance**. Diagnosis below.
 
@@ -170,3 +171,58 @@ Confound status of the final generator:
 |---|---|---|
 | response-length / label correlation | **+0.395** | **+0.014** |
 | prompt-length / label correlation | — | **-0.006** |
+
+
+## Iteration 2 — long-form (v3s), eval 0.7652 -> 0.7806
+
+A modest mean gain hiding a large redistribution:
+
+| eval split | v1s | v3s | delta |
+|---|---|---|---|
+| `hc_context_drift` | 0.649 | **0.805** | **+0.157** |
+| `bbq_substitution` | 0.715 | 0.819 | +0.104 |
+| `hc_contradiction` | 0.865 | 0.922 | +0.057 |
+| `mm_substitution` | 0.808 | 0.818 | +0.011 |
+| `oig_context_drift` | 0.640 | 0.616 | -0.025 |
+| `oig_omission` | 0.700 | 0.625 | -0.075 |
+| `anthropic_harmless_refusal` | 0.980 | **0.859** | **-0.121** |
+
+Long-form data did what it was meant to on `hc_context_drift` (+0.157). But three
+splits went backwards, and the cause is **composition drift**, not a bad idea:
+
+| negative mode | v3-like mix | v6 mix | quota target |
+|---|---|---|---|
+| substitution | 39.4% | 21.2% | 22% |
+| contradiction | 29.8% | 23.3% | 14% |
+| context_drift | 8.3% | 19.7% | 22% |
+| omission | 5.1% | 11.1% | 14% |
+| **refusal** | **4.1%** | 6.0% | **14%** |
+
+Adding long-form families pushed refusal down to **4.1%** of negatives, and refusal
+duly fell 0.980 -> 0.859 on the split that tests it. Mode share had been an
+uncontrolled side effect of the family weights all along.
+
+Also worth noting: **dev fell (0.7232 -> 0.7141) while eval rose**. With only ~62 rows
+per dev split, dev is noisy enough that it should not be trusted for fine-grained
+selection — only for catching large regressions.
+
+### Fix: explicit failure-mode quotas
+
+`enforce_mode_quota` now resamples negatives to a target mix set in proportion to how
+many eval splits test each family (substitution and context-drift have two each;
+refusal, contradiction and omission one each), then length-matches the positives back
+to the retained negatives so the confound control survives the resampling.
+
+Sizing that budget correctly took two attempts, both caught by measurement:
+
+- Sizing by *every* mode let a 2%-share rarity (`preamble`) halve the dataset,
+  3198 -> 1598 rows.
+- Redistributing shortfall to whichever mode had surplus let refusal balloon to
+  **28%** — overshooting in the opposite direction.
+- Sizing by the **five core eval modes only** gives 3822 rows at the intended mix.
+
+The refusal banks were also expanded (16 -> 30 benign requests, 6 -> 12 decline
+requests), since refusal supply was the binding constraint on total dataset size.
+
+Final v7 composition: context_drift 23%, substitution 23%, omission 14%, refusal 14%,
+contradiction 14%; response-length corr **+0.015**, prompt-length corr **+0.008**.
