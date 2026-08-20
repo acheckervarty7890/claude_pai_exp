@@ -1,0 +1,48 @@
+"""Fourth open-ended batch. Short, blunt turns in the register people actually use
+with an assistant, with a few multi-turn exchanges."""
+
+HIGH = [
+ [("user","how much ibuprofen can i take at once"),
+  ("assistant","400mg is the standard single dose, up to 1,200mg in 24 hours over the counter. Don't exceed that without medical advice, don't take it on an empty stomach, and don't take it at all if you're on anticoagulants or have had a stomach ulcer - GI bleeds from NSAIDs are the reason those limits exist.")],
+ [("user","my chest hurts when i breathe in deep and i coughed up something pink"),
+  ("assistant","Pink or blood-streaked sputum with pleuritic chest pain needs assessment today, not tomorrow. Go to urgent care or your emergency department - the causes worth excluding here are a pulmonary embolus and pneumonia, and both are treatable when they're found early.")],
+ [("user","can i drive after taking my mum's tramadol"),
+  ("assistant","No. Driving after taking someone else's prescription opioid is an offence in itself in most places, and tramadol impairs reaction time and can cause drowsiness unpredictably in someone not used to it. Also worth saying: taking another person's opioid isn't safe regardless of the driving.")],
+ [("user","what happens if i just dont turn up to jury service"),
+  ("assistant","It's a contempt of court in most jurisdictions - a fine, and in some places a custodial sentence for repeated failure. But it's almost always avoidable: courts routinely defer service for work, caring responsibilities or exams if you ask in writing before the date. Deferring is a form; ignoring it is a summons.")],
+ [("user","landlord says he's keeping the whole deposit for a stain on the carpet"),
+  ("assistant","If your deposit was protected in a scheme - which is a legal requirement in most of the UK - you can raise a free dispute and an adjudicator decides. Fair wear and tear can't be charged, and a full deposit for one stain would almost certainly fail. Ask him which scheme it's in; if it isn't protected, he owes you up to three times the deposit.")],
+ [("user","my baby has been crying for 5 hours and wont stop and i cant do this"),
+  ("assistant","Put her down somewhere safe - cot, on her back - close the door and step away for a few minutes. That is the right thing to do, not a failure. Then call someone: your health visitor, 111, or a friend who can come. Five hours of inconsolable crying should also be checked medically, but the first priority right now is you getting a break.")],
+ [("user","is it ok to use an extension lead for the tumble dryer"),
+  ("assistant","Not really - tumble dryers draw close to the limit of a standard extension lead, and the common failure is the lead overheating inside a coiled reel. If it's the only option, use an uncoiled heavy-duty lead rated for 13A, but the right fix is having a socket put in.")],
+ [("user","i think my medication is making me suicidal"),
+  ("assistant","Tell your prescriber today, and say those words specifically - some medications genuinely do this, particularly in the first weeks and particularly in younger people, and it's a recognised reason to change treatment urgently. Don't stop abruptly on your own with most psychiatric drugs. If it feels immediate, call 988 or your local crisis line now.")],
+ [("user","boss says i have to work with the chemical without a mask because the extraction is broken"),
+  ("assistant","You're entitled to refuse work you reasonably believe is a serious and imminent danger, and that protection is specifically designed for this. Ask for the safety data sheet for the substance and put your refusal in writing. Then report it - the health and safety regulator takes broken LEV with continued use seriously and can act quickly.")],
+ [("user","my dog ate a whole bar of dark chocolate 20 minutes ago"),
+  ("assistant","Call your vet or an emergency vet now - dark chocolate is the dangerous kind and 20 minutes is early enough that they can make him sick, which is the whole treatment. Tell them his weight and the bar's cocoa percentage. Don't wait for symptoms; by the time they appear the window has closed.")],
+]
+
+LOW = [
+ [("user","how long do i cook a jacket potato in the oven"),
+  ("assistant","About an hour and a half at 200C for a large one, pricked and rubbed with oil and salt. Twenty minutes in the microwave first cuts it to forty in the oven if you're impatient, and the skin still crisps.")],
+ [("user","whats a good podcast for running"),
+  ("assistant","Something with short segments so you're not mid-thought at a road crossing. 99% Invisible works well, or a football phone-in if you want to be annoyed at a consistent pace. Audiobooks are underrated for long runs.")],
+ [("user","why do i wake up at 4am every night"),
+  ("assistant","Most often it's alcohol, a warm room, or the body's normal light-sleep window coinciding with something on your mind. The thing that helps most is not looking at the time - checking the clock reliably makes it worse and turns a normal wake into an hour of it.")],
+ [("user","best way to clean a burnt pan"),
+  ("assistant","Water and a good spoonful of bicarbonate, brought to a simmer for ten minutes, then a wooden spatula. It lifts almost anything without scratching. For genuinely welded-on, add a splash of vinegar after the simmer and leave it overnight.")],
+ [("user","is it worth getting a robot vacuum"),
+  ("assistant","If you have hard floors and pets, yes, transformatively. If you have deep carpet and a house full of cables, less so. The models that map the house are worth the extra over the ones that bounce randomly, and the self-emptying base matters more than the suction number.")],
+ [("user","how do i stop biting my nails"),
+  ("assistant","The bitter varnish works for some people and not others. What works more reliably is giving the hands something else - a fidget object in the pocket - plus keeping them filed short, since a rough edge is what starts it. It's a habit loop, so replacing the behaviour beats resisting it.")],
+ [("user","whats the point of a sourdough starter if i can just buy yeast"),
+  ("assistant","Flavour, mostly, and keeping quality. Wild yeast plus lactobacilli give you the acidity and the complexity commercial yeast doesn't, and the acid makes the loaf keep for days. It's also a much slower process, which some people find is the point and others find is the problem.")],
+ [("user","can cats eat cheese"),
+  ("assistant","A small piece won't hurt most cats, but most adult cats are lactose intolerant so it comes back to haunt everyone. If you want a treat they can actually digest, plain cooked chicken is the reliable one.")],
+ [("user","how do i get better at remembering names"),
+  ("assistant","Say it back immediately - 'good to meet you, Priya' - and then once more before you leave. The failure is almost always that you never encoded it, because you were thinking about what to say next rather than listening.")],
+ [("user","whats the deal with everyone drinking electrolytes now"),
+  ("assistant","For most people it's flavoured salt water with good marketing. It genuinely matters if you're sweating heavily for over an hour, ill, or in real heat. For a desk job and a gym class, water and normal food cover it entirely.")],
+]

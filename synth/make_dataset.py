@@ -14,11 +14,13 @@ from pathlib import Path
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
 
-import pools, pools_clinical, pools_clinical2, pools_clinical3  # noqa: E402
-import pools_mt, pools_mt2, pools_mt3, pools_mt4  # noqa: E402
-import pools_hh, pools_hh2, pools_hh3  # noqa: E402
-import pools_prof, pools_prof2  # noqa: E402
+import pools  # noqa: E402
+import pools_clinical, pools_clinical2, pools_clinical3, pools_clinical4  # noqa: E402
+import pools_mt, pools_mt2, pools_mt3, pools_mt4, pools_mt5  # noqa: E402
+import pools_hh, pools_hh2, pools_hh3, pools_hh4, pools_hh5  # noqa: E402
+import pools_prof, pools_prof2, pools_prof3  # noqa: E402
 import pools_tool, pools_tool2, pools_tool3, pools_tool4  # noqa: E402
+import pools_tool5, pools_tool6, pools_tool7, pools_tool8, pools_tool9  # noqa: E402
 from func_bank import BANK  # noqa: E402
 
 POS, NEG = "high-stakes", "low-stakes"
@@ -87,11 +89,14 @@ def check_alternating(rows):
 
 def collect(extra_modules=()):
     high, low = [], []
-    plain_mods = (pools, pools_clinical, pools_clinical2, pools_clinical3,
-                  pools_mt, pools_mt2, pools_mt3, pools_mt4,
-                  pools_hh, pools_hh2, pools_hh3,
-                  pools_prof, pools_prof2)
-    tool_mods = (pools_tool, pools_tool2, pools_tool3, pools_tool4)
+    plain_mods = (pools,
+                  pools_clinical, pools_clinical2, pools_clinical3, pools_clinical4,
+                  pools_mt, pools_mt2, pools_mt3, pools_mt4, pools_mt5,
+                  pools_hh, pools_hh2, pools_hh3, pools_hh4, pools_hh5,
+                  pools_prof, pools_prof2, pools_prof3)
+    tool_mods = (pools_tool, pools_tool2, pools_tool3, pools_tool4,
+                 pools_tool5, pools_tool6, pools_tool7, pools_tool8,
+                 pools_tool9)
     for mod in plain_mods + tuple(extra_modules):
         high += [plain(t) for t in mod.HIGH]
         low += [plain(t) for t in mod.LOW]

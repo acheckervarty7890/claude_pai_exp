@@ -1,0 +1,48 @@
+"""Third register-matched batch: consequential professional work against routine
+work in the same professions, so job title does not predict the label."""
+
+HIGH = [
+ [("user","I'm the head of year and a student has disclosed something about her home life. What do I do with it?"),
+  ("assistant","Record what she said in her own words, with the date and time, and pass it to the designated safeguarding lead today - not at the end of the week and not filtered through your own assessment of whether it's serious. Don't promise confidentiality and don't investigate it yourself; both damage the process and can compromise a later inquiry.")],
+ [("user","Can you check my calculation for the fire escape capacity? Two staircases, 1,100mm each, four storeys, 600 occupants."),
+  ("assistant","Send the working through, but check the assumption first: standard guidance requires the design to work with one staircase discounted, on the basis that a fire may make one unusable. On two 1,100mm stairs that halves your capacity, and 600 occupants across four storeys will very likely fail the single-stair case. That's the calculation that governs.")],
+ [("user","We're setting the reserve for a liability claim. The claimant's medical evidence just came in."),
+  ("assistant","Reserve to the realistic worst case rather than the expected settlement, because the reserve is what drives the reinsurance notification and the capital treatment. Read the medical evidence for the prognosis range rather than the headline diagnosis, and check whether it opens a care claim - future care is what turns a moderate claim into a large one, and it is often invisible in the first report.")],
+ [("user","I need to advise the board on whether we can classify these workers as self-employed."),
+  ("assistant","The label in the contract is close to irrelevant; what matters is control, personal service and mutuality of obligation as actually practised. Look at whether they can send a substitute in reality, who sets the hours, and whether they can work for competitors. Getting it wrong is back-dated employment rights plus tax and NIC with interest and penalties, so this warrants written external advice rather than a board paper alone.")],
+ [("user","Can you review the assumptions in our clinical trial's sample size calculation?"),
+  ("assistant","Happy to. The parameters worth challenging first are the assumed effect size and the dropout rate. Effect sizes taken from small early studies are systematically optimistic, and an underpowered trial is unethical rather than merely disappointing - you expose participants to risk with no realistic chance of answering the question. What was the effect size based on?")],
+ [("user","I'm specifying the concrete mix for a marine structure. Is C40 enough?"),
+  ("assistant","Strength class is the wrong lever here - durability governs. For a marine exposure class you're specifying by water-cement ratio, cover depth and cement type, with a supplementary cementitious material to resist chloride ingress. A C40 with high cover and GGBS will outlast a C50 with the wrong binder and 30mm cover by decades.")],
+ [("user","We're deciding whether to disclose an error in a published paper. It doesn't change the conclusion."),
+  ("assistant","Disclose it. Journals have a correction mechanism precisely for errors that don't change conclusions, and a correction costs you very little. What costs a great deal is the version where someone else finds it later, because the question then becomes when you knew. Write to the editor with the specific error, the corrected figure and a statement of the effect on the conclusions.")],
+ [("user","Can you help me structure the risk assessment for a school trip to the coast?"),
+  ("assistant","Structure it around the hazards that actually kill people on school trips: water, road crossings, and losing a child. For the coast that means tide times checked against the itinerary, an explicit rule about the water line, ratios that work when one adult is dealing with an incident, and a headcount protocol at fixed points. Generic risk assessments fail because they list everything and control nothing.")],
+ [("user","I need to decide whether to notify our regulator about a control failure we found ourselves."),
+  ("assistant","Almost always yes, and early. Most regulatory regimes have an explicit expectation of open and cooperative dealing, and self-reported failures are treated very differently from discovered ones - both in enforcement outcomes and in how the regulator engages afterwards. The question worth taking advice on is scope and timing, not whether.")],
+ [("user","Can you review our safeguarding policy's section on adults at risk?"),
+  ("assistant","Send it. The three things I'd check: whether it defines who the designated person is by name and role rather than 'a manager', whether it distinguishes a concern from an allegation against a staff member since those have different routes, and whether it says what happens when the person at risk does not consent to a referral. That last one is where most policies go vague and where the hardest real cases sit.")],
+]
+
+LOW = [
+ [("user","I'm the head of year and I need to write the newsletter piece about the trip."),
+  ("assistant","Lead with one specific thing a student said or did rather than the itinerary - parents skim the schedule and read the anecdote. Two hundred words, one photo, and name-check the staff who gave up a weekend. That's the whole formula and it works every time.")],
+ [("user","Can you help me pick a lever arch file system for the department's paper records?"),
+  ("assistant","Colour by category rather than by year, since you'll search by category and browse by year. Spine labels printed rather than handwritten if more than one person files, and leave a third of each file empty - full lever arch files are how paper systems die.")],
+ [("user","I need to book the training room for a half-day session in April."),
+  ("assistant","Check whether the room has the projector or whether that's a separate booking - in most places it is, and it's the thing people discover on the morning. Book it for an hour longer than the session so you're not setting up in front of arrivals.")],
+ [("user","Can you suggest an icebreaker for a team day that isn't excruciating?"),
+  ("assistant","Two truths and a lie is tired but works because it's short. Better: everyone brings one photo from their phone and says why it's there. It takes ninety seconds each, nobody has to perform, and people actually remember it afterwards.")],
+ [("user","I want to tidy up the shared spreadsheet of supplier contacts."),
+  ("assistant","One row per contact, never one row per supplier with three names in a cell, and a single 'last verified' date column. Then freeze the header row and turn on filters. Most contact sheets fail because someone put two things in one cell early on.")],
+ [("user","Can you help me choose between two project management tools for a five-person team?"),
+  ("assistant","At five people the tool matters far less than whether everyone updates it, so pick the one with the better mobile app and fewest required fields. Trial both for two weeks with a real project rather than a demo one - the difference shows up in the fiddly parts, not the feature list.")],
+ [("user","I need to write the agenda for the monthly team meeting."),
+  ("assistant","Put the decision items first and the updates last, with a time against each. Updates expand to fill whatever is left, so if they're at the top the decisions get five rushed minutes at the end. Anything that's purely information should be an email instead.")],
+ [("user","Can you recommend a way to collect feedback after the training session?"),
+  ("assistant","Three questions, on paper, before people leave the room. What was useful, what was missing, what would you tell a colleague. Emailed forms after the fact get about a fifth of the response rate and the answers are vaguer.")],
+ [("user","I want to set up a template for the weekly status report."),
+  ("assistant","Three headings: done, next, blocked. Anything longer stops being written by week four. If someone needs more detail they'll ask, and the asking is more useful than the pre-emptive paragraph nobody reads.")],
+ [("user","Can you help me plan the seating for the department away day lunch?"),
+  ("assistant","Mix teams rather than seating people with who they already talk to, and put the two people who need to talk to each other at the same table without making it obvious. Round tables of six - eight is too many for one conversation and four feels like an interview.")],
+]
