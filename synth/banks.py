@@ -555,3 +555,11 @@ DECLINE_REQUESTS = [
      "Thanks for reaching out, but we're not looking at new vendors in this category right now. "
      "I'll keep your details on file in case that changes."),
 ]
+
+
+# Shared row type, kept here so both generators can import it without a cycle.
+import collections as _collections
+
+POS_LABEL = "assistant_follows_the_instruction"
+NEG_LABEL = "assistant_does_not_follow_the_instruction"
+Row = _collections.namedtuple("Row", "messages label family mode")

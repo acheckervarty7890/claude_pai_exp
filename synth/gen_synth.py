@@ -32,12 +32,10 @@ import json
 import random
 from pathlib import Path
 
-from banks import BENIGN_REQUESTS, DECLINE_REQUESTS, FORBIDDEN, TOPICS
-
-POS = "assistant_follows_the_instruction"
-NEG = "assistant_does_not_follow_the_instruction"
-
-Row = collections.namedtuple("Row", "messages label family mode")
+from banks import (BENIGN_REQUESTS, DECLINE_REQUESTS, FORBIDDEN, NEG_LABEL as NEG,
+                   POS_LABEL as POS, Row, TOPICS)
+from longform import LONGFORM_FAMILIES
+from naturalize import naturalize_group
 
 
 def _n_words(text: str) -> int:
@@ -338,19 +336,28 @@ def fam_single_sentence(t, rng):
 
 # ---------------------------------------------------------------- assembly
 
-def generate(n_target: int, seed: int) -> list[Row]:
+def generate(n_target: int, seed: int, longform_weight: int = 3,
+             naturalize: bool = True) -> list[Row]:
     rng = random.Random(seed)
     rows: list[Row] = []
     topic_fams = [fam_numbered_list, fam_bullets, fam_summary, fam_extract, fam_forbidden_word,
                   fam_json, fam_drift, fam_scope_contradiction, fam_option_letter,
                   fam_ordering, fam_single_sentence]
     guard = 0
-    while len(rows) < n_target * 3 and guard < 4000:
+    while len(rows) < n_target * 3 and guard < 6000:
         guard += 1
         t = rng.choice(TOPICS)
-        rows.extend(rng.choice(topic_fams)(t, rng))
-        rows.extend(fam_benign_refusal(rng))
-        rows.extend(fam_decline(rng))
+        # long-form families are drawn more often: they are the ones that match the
+        # 159-436 token sequence lengths the probe is actually scored over.
+        def emit(group):
+            rows.extend(naturalize_group(group, rng) if naturalize else group)
+
+        for _ in range(longform_weight):
+            lt = rng.choice(TOPICS)
+            emit(rng.choice(LONGFORM_FAMILIES)(lt, rng))
+        emit(rng.choice(topic_fams)(t, rng))
+        emit(fam_benign_refusal(rng))
+        emit(fam_decline(rng))
     # de-duplicate on exact conversation text
     seen, uniq = set(), []
     for r in rows:
@@ -361,38 +368,86 @@ def generate(n_target: int, seed: int) -> list[Row]:
     return uniq
 
 
-def balance_by_length(rows: list[Row], rng: random.Random, bins: int = 10) -> list[Row]:
-    """Length-stratified class matching.
+def _pick_across_modes(rows: list[Row], k: int, rng: random.Random) -> list[Row]:
+    """Take k rows, cycling across failure modes instead of sampling uniformly.
 
-    Bucket every row by the character length of its assistant turn, then keep an
-    equal number of positives and negatives *within each bucket*. Whatever length
-    signal survives generation is removed here, so the probe cannot separate the
-    classes on response length alone.
+    Uniform sampling inside a length bucket wiped out whole modes — `refusal`
+    disappeared from lf_chat entirely, even though `anthropic_harmless_refusal` is
+    one of the eval splits. Round-robin keeps every mode represented right up to the
+    point where the bucket runs out of it.
+    """
+    by_mode = collections.defaultdict(list)
+    for r in rows:
+        by_mode[r.mode].append(r)
+    for v in by_mode.values():
+        rng.shuffle(v)
+    modes = sorted(by_mode)
+    picked = []
+    while len(picked) < k:
+        progressed = False
+        for m in modes:
+            if by_mode[m] and len(picked) < k:
+                picked.append(by_mode[m].pop())
+                progressed = True
+        if not progressed:
+            break
+    return picked
+
+
+def balance_by_length(rows: list[Row], rng: random.Random, bins: int = 8) -> list[Row]:
+    """Length-stratified class matching, applied **within each family**.
+
+    Bucket rows by the character length of the assistant turn and keep equal numbers
+    of positives and negatives in each bucket. Stratifying per family matters: done
+    globally it silently deleted every `lf_standing` context-drift negative, because
+    drift is intrinsically longer than compliance and no bucket held both classes.
+    Per family — now that each family emits both terse-target and verbose-target
+    flavours — the buckets overlap and every failure mode survives.
     """
     def alen(r):
         return len(r.messages[-1]["content"])
 
-    lens = sorted(alen(r) for r in rows)
-    edges = [lens[int(len(lens) * i / bins)] for i in range(1, bins)]
-
-    def bucket(r):
-        v = alen(r)
-        return sum(v > e for e in edges)
-
-    by = collections.defaultdict(lambda: {POS: [], NEG: []})
+    by_family = collections.defaultdict(list)
     for r in rows:
-        by[bucket(r)][r.label].append(r)
+        by_family[r.family].append(r)
 
     out = []
-    for b in sorted(by):
-        p, n = by[b][POS], by[b][NEG]
-        k = min(len(p), len(n))
-        if k == 0:
-            continue
-        out.extend(rng.sample(p, k))
-        out.extend(rng.sample(n, k))
+    for fam, frows in by_family.items():
+        lens = sorted(alen(r) for r in frows)
+        edges = [lens[int(len(lens) * i / bins)] for i in range(1, bins)]
+
+        def bucket(r):
+            v = alen(r)
+            return sum(v > e for e in edges)
+
+        by = collections.defaultdict(lambda: {POS: [], NEG: []})
+        for r in frows:
+            by[bucket(r)][r.label].append(r)
+        for b in sorted(by):
+            p, n = by[b][POS], by[b][NEG]
+            k = min(len(p), len(n))
+            if k == 0:
+                continue
+            out.extend(rng.sample(p, k))
+            out.extend(_pick_across_modes(n, k, rng))
     rng.shuffle(out)
     return out
+
+
+def length_corr(rows: list[Row]) -> float:
+    """Point-biserial correlation between assistant-turn length and the label.
+
+    This is the number that matters: near 0 means a probe cannot cheat by reading
+    response length. The shipped seed sits around +0.5.
+    """
+    xs = [len(r.messages[-1]["content"]) for r in rows]
+    ys = [1.0 if r.label == NEG else 0.0 for r in rows]
+    n = len(xs)
+    mx, my = sum(xs) / n, sum(ys) / n
+    num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    dx = sum((x - mx) ** 2 for x in xs) ** 0.5
+    dy = sum((y - my) ** 2 for y in ys) ** 0.5
+    return num / (dx * dy) if dx and dy else 0.0
 
 
 def main():
@@ -403,10 +458,15 @@ def main():
     ap.add_argument("--include-seed", type=Path, default=None,
                     help="original seed jsonl to prepend (kept verbatim)")
     ap.add_argument("--no-balance", action="store_true")
+    ap.add_argument("--no-naturalize", action="store_true",
+                    help="skip the user-turn surface-variation layer")
+    ap.add_argument("--longform-weight", type=int, default=3,
+                    help="long-form family draws per generation round (0 = v1 behaviour)")
     args = ap.parse_args()
 
     rng = random.Random(args.seed + 991)
-    rows = generate(args.n, args.seed)
+    rows = generate(args.n, args.seed, longform_weight=args.longform_weight,
+                    naturalize=not args.no_naturalize)
     if not args.no_balance:
         rows = balance_by_length(rows, rng)
     rng.shuffle(rows)
@@ -438,6 +498,7 @@ def main():
     print(f"  pos={len(plen)} neg={len(nlen)}")
     print(f"  assistant-turn chars: pos mean {sum(plen)/len(plen):.0f}  neg mean {sum(nlen)/len(nlen):.0f}")
     print(f"  turns: {dict(sorted(turns.items()))}")
+    print(f"  length/label correlation: {length_corr(rows):+.3f}  (seed is about +0.5)")
     for (f_, m), c in sorted(fam.items()):
         print(f"    {f_:16s} {m:16s} {c}")
 
