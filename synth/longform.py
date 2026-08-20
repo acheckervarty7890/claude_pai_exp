@@ -14,7 +14,7 @@ from __future__ import annotations
 import random
 
 from banks import BENIGN_REQUESTS, FORBIDDEN, NEG_LABEL as NEG, POS_LABEL as POS, Row, TOPICS
-from refusals import deflection, refusal, short_refusal
+from refusals import banned_term_sentence, deflection, refusal, short_refusal
 
 DETAIL_TAILS = [
     "This is the part people most often get wrong in practice.",
@@ -135,8 +135,8 @@ def lf_constrained_summary(t, rng):
                  f"a complete sentence with a clause of explanation, and you must not use the word "
                  f"\"{w}\" anywhere.\n\n--- DOCUMENT ---\n{doc}\n--- END ---")
         good = [_sent(x) + " " + rng.choice(DETAIL_TAILS) for x in safe[:n]]
-        banned_line = ((bad_src[0] if bad_src else f"The {w} is the central idea here")
-                       + " " + rng.choice(DETAIL_TAILS))
+        banned_line = ((bad_src[0] if bad_src and rng.random() < 0.5
+                        else banned_term_sentence(w, rng)) + " " + rng.choice(DETAIL_TAILS))
         out = [Row([{"role": "user", "content": instr},
                     {"role": "assistant", "content": _bulleted(good)}], POS, "lf_summary", "compliant")]
         u = {"role": "user", "content": instr}
@@ -154,7 +154,7 @@ def lf_constrained_summary(t, rng):
     u = {"role": "user", "content": instr}
     good = [" ".join(x.split()[:10]) for x in safe[:n]]
     out = [Row([u, {"role": "assistant", "content": _bulleted(good)}], POS, "lf_summary", "compliant")]
-    banned = (bad_src[0] if bad_src else f"The {w} is the central idea here")
+    banned = (bad_src[0] if bad_src and rng.random() < 0.5 else banned_term_sentence(w, rng))
     out.append(Row([u, {"role": "assistant",
                         "content": _bulleted([" ".join(banned.split()[:10])] + good[1:])}],
                    NEG, "lf_summary", "contradiction"))
@@ -316,7 +316,8 @@ def lf_user_facts_contradiction(t, rng):
         {"role": "user", "content": f"Great. Give me two short lines on {t['subject']}, and remember: avoid the term \"{w}\"."},
     ]
     good = f"{safe[0]}. {safe[1]}."
-    bad = (f"{bad_src[0]}. {safe[0]}." if bad_src else f"The {w} is really the core of it. {safe[0]}.")
+    bad = (f"{bad_src[0]}. {safe[0]}." if bad_src and rng.random() < 0.5
+           else f"{banned_term_sentence(w, rng)} {safe[0]}.")
     long_bad = (f"{safe[0]}. {safe[1]}. {safe[2]}. " +
                 "It's worth investing in some decent equipment as well, which makes a real difference "
                 "once you move past the basics and start caring about consistency.")

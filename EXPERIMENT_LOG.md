@@ -50,6 +50,7 @@ Mean AUROC across the 7 splits (higher is better; 0.5 = chance).
 | v1s | seed + short paired synthetic | 804 | 0.7232 | **0.7652** |
 | v3s | + long-form multi-turn | 2434 | 0.7141 | **0.7806** |
 | v6s | + drift/omission families | 3248 | 0.7167 | 0.7534 |
+| v8s | + quotas + combinatorial diversity | 3428 | 0.7173 | 0.7740 |
 
 The shipped seed produces a probe at **exactly chance**. Diagnosis below.
 
@@ -284,3 +285,46 @@ always the last.
 
 v7 (quotas, old low-diversity text) was cancelled one minute into training in favour
 of **v8** = quotas + combinatorial diversity, since v8 strictly dominates it.
+
+
+## Iteration 4 — quotas + diversity (v8s), eval 0.7534 -> 0.7740
+
+| eval split | v1s | v3s | v6s | v8s | best so far |
+|---|---|---|---|---|---|
+| `mm_substitution` | 0.808 | 0.818 | 0.743 | **0.869** | v8s |
+| `hc_context_drift` | 0.649 | 0.805 | 0.811 | **0.867** | v8s |
+| `oig_omission` | 0.700 | 0.625 | 0.666 | **0.713** | v8s |
+| `anthropic_harmless_refusal` | **0.980** | 0.859 | 0.793 | 0.843 | v1s |
+| `hc_contradiction` | 0.865 | **0.922** | 0.842 | 0.765 | v3s |
+| `bbq_substitution` | 0.715 | 0.819 | **0.874** | 0.743 | v6s |
+| `oig_context_drift` | **0.640** | 0.616 | 0.546 | 0.618 | v1s |
+| **mean** | 0.7652 | **0.7806** | 0.7534 | 0.7740 | oracle **0.8379** |
+
+The diversity fix recovered most of the v6 regression and set new bests on three
+splits. No single run wins everywhere, and the per-split oracle (0.8379) sits well
+above every individual run, so composition is still leaving value on the table.
+
+### What the four runs actually show
+
+Plotting each split against the *share* of its failure mode in the training mix:
+
+- **`hc_contradiction` tracks contradiction share almost monotonically** —
+  29.8% -> 0.922, 23.3% -> 0.842, 14% -> 0.765.
+- **`hc_context_drift` tracks drift share** — 8.3% -> 0.805, 19.7% -> 0.811, 22% -> 0.867.
+- **`anthropic_harmless_refusal` tracks refusal *diversity*** more than share: it fell
+  while refusal rows grew (share 4% -> 6%, score 0.980 -> 0.793) and recovered once
+  the text was assembled combinatorially (0.843 at ratio 0.47).
+- **Dataset size shows no trend at all** (804 -> 0.765, 2434 -> 0.781, 3248 -> 0.753,
+  3428 -> 0.774). Composition and diversity dominate; volume does not.
+- **`oig_context_drift` has responded to nothing** — 0.55-0.64 across every run,
+  including the one that tripled drift data. It is the one split where my model of
+  the failure is probably still wrong.
+
+### v9: composition tuned to measured sensitivity
+
+Quota re-set from split-count proportions to measured per-split response —
+contradiction raised to 22%, drift and substitution 20% each, refusal and omission
+14% — and contradiction text (weakest remaining uniqueness ratio, 0.33) assembled
+from varied frames rather than falling back to one fixed sentence.
+
+4994 rows, response-length corr +0.017, prompt-length corr +0.005.

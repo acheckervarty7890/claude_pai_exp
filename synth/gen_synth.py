@@ -38,7 +38,7 @@ from longform import LONGFORM_FAMILIES
 from naturalize import naturalize_group
 from drift import DRIFT_FAMILIES
 from flip import FLIP_FAMILIES, flip_refusal
-from refusals import deflection, refusal, short_refusal
+from refusals import banned_term_sentence, deflection, refusal, short_refusal
 from registers import REGISTER_FAMILIES
 
 
@@ -184,7 +184,8 @@ def fam_forbidden_word(t, rng):
     good = f"{safe[0]}. {safe[1]}."
     out = [Row([u, {"role": "assistant", "content": good}], POS, "forbidden_word", "compliant")]
     bad_src = [x for x in t["items"] if w.lower() in x.lower()]
-    bad = f"{bad_src[0]}. {safe[0]}." if bad_src else f"The {w} is central here. {safe[0]}."
+    bad = (f"{bad_src[0]}. {safe[0]}." if bad_src and rng.random() < 0.5
+           else f"{banned_term_sentence(w, rng)} {safe[0]}.")
     out.append(Row([u, {"role": "assistant", "content": bad}], NEG, "forbidden_word", "contradiction"))
     # overrun: four sentences when two were demanded
     out.append(Row([u, {"role": "assistant", "content": f"{safe[0]}. {safe[1]}. {t['items'][-1]}. There is quite a lot more to say about it as well."}],
@@ -390,15 +391,19 @@ def generate(n_target: int, seed: int, longform_weight: int = 3,
 # refusal duly regressed from 0.980 to 0.859 on the eval split that tests it.
 CORE_MODES = ("substitution", "context_drift", "refusal", "contradiction", "omission")
 
+# Shares tuned against measured per-split sensitivity rather than split counts alone.
+# hc_contradiction tracked contradiction share almost monotonically across runs
+# (29.8% -> 0.922, 23.3% -> 0.842, 14% -> 0.765), so it is raised; hc_context_drift
+# responded to drift share too. oig_context_drift responded to nothing tried so far.
 MODE_QUOTA = {
-    "substitution": 0.22,
-    "context_drift": 0.22,
+    "contradiction": 0.22,
+    "substitution": 0.20,
+    "context_drift": 0.20,
     "refusal": 0.14,
-    "contradiction": 0.14,
     "omission": 0.14,
-    "format": 0.07,
-    "overrun": 0.05,
-    "preamble": 0.02,
+    "format": 0.06,
+    "overrun": 0.03,
+    "preamble": 0.01,
 }
 
 

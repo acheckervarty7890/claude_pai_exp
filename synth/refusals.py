@@ -139,3 +139,32 @@ GENERIC_ADVICE = [
 def generic_advice(rng: random.Random, n: int = 3) -> str:
     """Plausible, on-topic-sounding advice that ignores the stated constraints."""
     return " ".join(rng.sample(GENERIC_ADVICE, min(n, len(GENERIC_ADVICE))))
+
+
+# ------------------------------------------------------------------ contradiction
+
+BANNED_FRAMES = [
+    "The {w} is really the heart of it.",
+    "You can't discuss this without the {w}.",
+    "It all comes back to the {w} in the end.",
+    "Most of the difficulty here is about the {w}.",
+    "The {w} is what everything else hangs off.",
+    "Start with the {w} and the rest follows.",
+    "People underestimate how much the {w} matters here.",
+    "Any serious account has to begin with the {w}.",
+    "The {w} explains nearly all of the behaviour.",
+    "Everything interesting about this involves the {w}.",
+]
+
+BANNED_TAILS = [
+    "", "", "",
+    " That's the piece worth remembering.",
+    " Everything else is detail by comparison.",
+    " It's the one thing I'd want you to take away.",
+    " Once that clicks, the rest is straightforward.",
+]
+
+
+def banned_term_sentence(word: str, rng: random.Random) -> str:
+    """A sentence that deliberately uses a forbidden term, in varied phrasing."""
+    return rng.choice(BANNED_FRAMES).format(w=word) + rng.choice(BANNED_TAILS)
