@@ -90,3 +90,53 @@ of those is really represented in the seed, and 40 training rows cannot support 
 
 Effect on the confound: v1 positives average **123** chars vs negatives **128**
 (seed: 92 vs 184).
+
+### Iterating on the generator
+
+Three problems surfaced while building the data, each fixed in turn:
+
+**1. Length balancing was deleting failure modes.** Applied globally, it removed
+*every* `lf_standing` context-drift negative — drift is intrinsically longer than
+compliance, so no length bucket contained both classes. Fix: each long-form family
+now emits a **terse-target** and a **verbose-target** flavour (e.g. "answer in 3
+bullets" vs "answer in 3 numbered points with supporting detail"), so compliance is
+not always the shorter class, and balancing is stratified per family.
+
+**2. Uniform sampling inside a bucket wiped out modes.** `refusal` vanished from
+`lf_chat` entirely, despite `anthropic_harmless_refusal` being an eval split.
+Fix: negative selection is round-robin across modes.
+
+**3. Sequence-length mismatch.** v1 rows had a median of 83 gemma tokens against
+dev/eval sequence lengths of 159-436. Since `linear_then_softmax` pools over token
+positions, that is a different regime from the one being scored. `synth/longform.py`
+adds multi-paragraph documents, multi-part instructions and standing constraints
+carried across 8 turns — the only shape in which *context drift* can exist at all.
+
+| dataset | p10 | p50 | p90 | max |
+|---|---|---|---|---|
+| seed | 34 | 67 | 92 | 135 |
+| v1 | 51 | 83 | 126 | 167 |
+| v2+ | 74 | 164 | 272 | 341 |
+
+### Context-flip pairs
+
+The remaining loophole: every family above holds the prompt fixed and varies the
+response, so a probe can still succeed on **response-only** features ("is a bulleted
+list", "is a refusal") that need not transfer to real conversations.
+
+`synth/flip.py` closes it from the other side — one **byte-identical** assistant turn
+paired with two instructions, one it satisfies and one it violates. Response-only
+features then carry exactly zero information. The sharpest case is the refusal flip:
+the same polite decline is compliant when a decline was requested and non-compliant
+when help was requested, which is precisely the `anthropic_harmless_refusal`
+distinction.
+
+`synth/registers.py` additionally adds email, code, tabular and creative-writing
+tasks, since `banks.TOPICS` is otherwise all expository prose.
+
+Confound status of the final generator:
+
+| metric | seed | synthetic |
+|---|---|---|
+| response-length / label correlation | **+0.395** | **+0.014** |
+| prompt-length / label correlation | — | **-0.006** |
