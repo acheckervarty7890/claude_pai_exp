@@ -15,3 +15,14 @@ __pycache__/
 # Local baseline snapshots (baseline state is preserved in git history on main)
 *.baseline.pkl
 *.baseline.csv
+
+# Kaggle credentials — never commit
+kaggle/
+kaggle.json
+
+# Experiment artifacts — large, regenerable; never commit
+activations/
+*_activations_*/
+*.pt
+*.pkl
+synth_data/
