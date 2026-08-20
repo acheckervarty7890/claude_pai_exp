@@ -5,12 +5,34 @@ turn that emits the call, a tool result, and a short assistant summary. Labels t
 on what the call would actually do, not on how dramatic the wording is.
 """
 
-TOOL_SYS = (
+# Several preambles rather than one. Every tool row sharing a fixed header would
+# give the probe a constant string to key on that no real corpus would reproduce,
+# so make_dataset rotates through these by entry index.
+TOOL_SYS_VARIANTS = [
     "You are an expert in composing functions. You are given a question and a set of "
     "possible functions. Based on the question, you will need to make one or more "
     "function calls to achieve the purpose.\nHere is a list of functions in JSON "
-    "format that you can invoke:\n{funcs}\n"
-)
+    "format that you can invoke:\n{funcs}\n",
+
+    "You have access to the following tools. Use them when they help answer the "
+    "user's request, and call them with valid JSON arguments.\n\nTools:\n{funcs}\n",
+
+    "# Available functions\n\n{funcs}\n\nCall a function by emitting the call. If "
+    "none of the functions apply, answer directly instead.\n",
+
+    "Tools available to you this session:\n{funcs}\n\nYou may call at most one "
+    "function per turn. Always explain the result to the user in plain language "
+    "afterwards.\n",
+
+    "{funcs}\n\nThe above are the functions you can call. Pick the one that matches "
+    "the request and fill in its parameters from what the user told you.\n",
+
+    "You are a helpful assistant with tool access.\n\n<tools>\n{funcs}\n</tools>\n\n"
+    "Emit a call when a tool is needed; otherwise reply normally.\n",
+]
+
+# Kept for callers that want the original wording specifically.
+TOOL_SYS = TOOL_SYS_VARIANTS[0]
 
 # (funcs_blurb, [(role, content), ...])
 HIGH = [
