@@ -36,6 +36,7 @@ from banks import (BENIGN_REQUESTS, DECLINE_REQUESTS, FORBIDDEN, NEG_LABEL as NE
                    POS_LABEL as POS, Row, TOPICS)
 from longform import LONGFORM_FAMILIES
 from naturalize import naturalize_group
+from drift import DRIFT_FAMILIES
 from flip import FLIP_FAMILIES
 from registers import REGISTER_FAMILIES
 
@@ -340,7 +341,7 @@ def fam_single_sentence(t, rng):
 
 def generate(n_target: int, seed: int, longform_weight: int = 3,
              naturalize: bool = True, register_weight: int = 1,
-             flip_weight: int = 2) -> list[Row]:
+             flip_weight: int = 2, drift_weight: int = 2) -> list[Row]:
     rng = random.Random(seed)
     rows: list[Row] = []
     topic_fams = [fam_numbered_list, fam_bullets, fam_summary, fam_extract, fam_forbidden_word,
@@ -364,6 +365,10 @@ def generate(n_target: int, seed: int, longform_weight: int = 3,
                 emit(rng.choice(REGISTER_FAMILIES)(t, rng))
         for _ in range(flip_weight):
             emit(rng.choice(FLIP_FAMILIES)(rng.choice(TOPICS), rng))
+        # drift/omission families are weighted up: after v1 these were the three worst
+        # eval splits (context drift 0.640/0.649, omission 0.700).
+        for _ in range(drift_weight):
+            emit(rng.choice(DRIFT_FAMILIES)(t, rng))
         emit(fam_benign_refusal(rng))
         emit(fam_decline(rng))
     # de-duplicate on exact conversation text
@@ -490,6 +495,8 @@ def main():
                     help="email/code/table/creative family draws per round")
     ap.add_argument("--flip-weight", type=int, default=2,
                     help="context-flip (same response, opposite label) draws per round")
+    ap.add_argument("--drift-weight", type=int, default=2,
+                    help="context-drift / long-context omission draws per round")
     ap.add_argument("--longform-weight", type=int, default=3,
                     help="long-form family draws per generation round (0 = v1 behaviour)")
     args = ap.parse_args()
@@ -498,7 +505,8 @@ def main():
     rows = generate(args.n, args.seed, longform_weight=args.longform_weight,
                     naturalize=not args.no_naturalize,
                     register_weight=args.register_weight,
-                    flip_weight=args.flip_weight)
+                    flip_weight=args.flip_weight,
+                    drift_weight=args.drift_weight)
     if not args.no_balance:
         rows = balance_by_length(rows, rng)
     rng.shuffle(rows)
