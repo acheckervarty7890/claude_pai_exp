@@ -1,8 +1,8 @@
-"""Print the per-split eval CSVs side by side, newest run last.
+"""Print AUROC per eval family across runs, oldest first.
 
-Split stems are hashed in the repo; the mapping to the four eval families comes
-from the fetch manifest's split names (row counts match), so the table is
-readable without touching the held-out files themselves.
+Split stems are hashed in the repo. The mapping to the four eval families comes
+from the fetch manifest's split names, whose row counts match the label files, so
+the table reads sensibly without touching the held-out data.
 """
 import sys
 import pandas as pd
@@ -15,12 +15,17 @@ FAMILY = {
     "mean": "MEAN",
 }
 
-frames = {}
-for path in sys.argv[1:]:
-    df = pd.read_csv(path).set_index(df_col := pd.read_csv(path).columns[0])
-    frames[path.split("/")[-1].replace("results_", "").replace(".csv", "")] = df["auroc"]
 
-out = pd.DataFrame(frames)
+def label(path):
+    return path.split("/")[-1].replace("results_", "").replace(".csv", "")
+
+
+cols = {}
+for path in sys.argv[1:]:
+    df = pd.read_csv(path)
+    cols[label(path)] = df.set_index(df.columns[0])["auroc"]
+
+out = pd.DataFrame(cols)
 out.index = [FAMILY.get(i, i) for i in out.index]
 print("AUROC by eval family")
 print(out.round(4).to_string())
