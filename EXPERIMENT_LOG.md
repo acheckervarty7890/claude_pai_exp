@@ -47,8 +47,38 @@ Mean AUROC across the 7 splits (higher is better; 0.5 = chance).
 | iteration | training data | rows | dev mean AUROC | eval mean AUROC |
 |---|---|---|---|---|
 | baseline | shipped seed only | 50 | 0.4808 | **0.4991** |
+| v1s | seed + short paired synthetic | 804 | 0.7232 | **0.7652** |
 
 The shipped seed produces a probe at **exactly chance**. Diagnosis below.
+
+Dev and eval move together, so dev is a usable selection signal and the eval set does
+not have to be consulted to make decisions.
+
+### Per-split breakdown
+
+Split names come from the public Kaggle manifest, and the label filenames are
+`sha256(split_name)[:12]` — the mapping `evaluation.py:blob_keys` already uses — so
+results can be attributed to a failure family without opening any held-out file.
+
+| eval split | baseline | v1s | gain |
+|---|---|---|---|
+| `oig_context_drift` | 0.556 | **0.640** | +0.08 |
+| `hc_context_drift` | 0.489 | **0.649** | +0.16 |
+| `oig_omission` | 0.453 | 0.700 | +0.25 |
+| `bbq_substitution` | 0.517 | 0.715 | +0.20 |
+| `mm_substitution` | 0.347 | 0.808 | +0.46 |
+| `hc_contradiction` | 0.490 | 0.865 | +0.37 |
+| `anthropic_harmless_refusal` | 0.641 | **0.980** | +0.34 |
+
+**Refusal is solved** (0.98) — the benign-refusal and decline-request families did
+their job. **Context drift is the weak point** on both of its splits, with omission
+next.
+
+That is exactly what the length analysis predicted. The two drift splits have the
+longest sequences (367 and 392 tokens) and `oig_omission` is longer still (436),
+while v1s topped out at **167** tokens and was only ~13% multi-turn. The probe was
+never shown a conversation long enough for drift to occur. This is what the
+`longform` and `flip_standing` families were built to fix.
 
 ## Why the seed fails
 
