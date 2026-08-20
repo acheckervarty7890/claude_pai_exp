@@ -36,6 +36,7 @@ from banks import (BENIGN_REQUESTS, DECLINE_REQUESTS, FORBIDDEN, NEG_LABEL as NE
                    POS_LABEL as POS, Row, TOPICS)
 from longform import LONGFORM_FAMILIES
 from naturalize import naturalize_group
+from registers import REGISTER_FAMILIES
 
 
 def _n_words(text: str) -> int:
@@ -337,7 +338,7 @@ def fam_single_sentence(t, rng):
 # ---------------------------------------------------------------- assembly
 
 def generate(n_target: int, seed: int, longform_weight: int = 3,
-             naturalize: bool = True) -> list[Row]:
+             naturalize: bool = True, register_weight: int = 1) -> list[Row]:
     rng = random.Random(seed)
     rows: list[Row] = []
     topic_fams = [fam_numbered_list, fam_bullets, fam_summary, fam_extract, fam_forbidden_word,
@@ -356,6 +357,9 @@ def generate(n_target: int, seed: int, longform_weight: int = 3,
             lt = rng.choice(TOPICS)
             emit(rng.choice(LONGFORM_FAMILIES)(lt, rng))
         emit(rng.choice(topic_fams)(t, rng))
+        if register_weight:
+            for _ in range(register_weight):
+                emit(rng.choice(REGISTER_FAMILIES)(t, rng))
         emit(fam_benign_refusal(rng))
         emit(fam_decline(rng))
     # de-duplicate on exact conversation text
@@ -460,13 +464,16 @@ def main():
     ap.add_argument("--no-balance", action="store_true")
     ap.add_argument("--no-naturalize", action="store_true",
                     help="skip the user-turn surface-variation layer")
+    ap.add_argument("--register-weight", type=int, default=1,
+                    help="email/code/table/creative family draws per round")
     ap.add_argument("--longform-weight", type=int, default=3,
                     help="long-form family draws per generation round (0 = v1 behaviour)")
     args = ap.parse_args()
 
     rng = random.Random(args.seed + 991)
     rows = generate(args.n, args.seed, longform_weight=args.longform_weight,
-                    naturalize=not args.no_naturalize)
+                    naturalize=not args.no_naturalize,
+                    register_weight=args.register_weight)
     if not args.no_balance:
         rows = balance_by_length(rows, rng)
     rng.shuffle(rows)
