@@ -36,6 +36,7 @@ from banks import (BENIGN_REQUESTS, DECLINE_REQUESTS, FORBIDDEN, NEG_LABEL as NE
                    POS_LABEL as POS, Row, TOPICS)
 from longform import LONGFORM_FAMILIES
 from naturalize import naturalize_group
+from flip import FLIP_FAMILIES
 from registers import REGISTER_FAMILIES
 
 
@@ -338,7 +339,8 @@ def fam_single_sentence(t, rng):
 # ---------------------------------------------------------------- assembly
 
 def generate(n_target: int, seed: int, longform_weight: int = 3,
-             naturalize: bool = True, register_weight: int = 1) -> list[Row]:
+             naturalize: bool = True, register_weight: int = 1,
+             flip_weight: int = 2) -> list[Row]:
     rng = random.Random(seed)
     rows: list[Row] = []
     topic_fams = [fam_numbered_list, fam_bullets, fam_summary, fam_extract, fam_forbidden_word,
@@ -360,6 +362,8 @@ def generate(n_target: int, seed: int, longform_weight: int = 3,
         if register_weight:
             for _ in range(register_weight):
                 emit(rng.choice(REGISTER_FAMILIES)(t, rng))
+        for _ in range(flip_weight):
+            emit(rng.choice(FLIP_FAMILIES)(rng.choice(TOPICS), rng))
         emit(fam_benign_refusal(rng))
         emit(fam_decline(rng))
     # de-duplicate on exact conversation text
@@ -438,6 +442,29 @@ def balance_by_length(rows: list[Row], rng: random.Random, bins: int = 8) -> lis
     return out
 
 
+def _corr(xs, ys) -> float:
+    n = len(xs)
+    if not n:
+        return 0.0
+    mx, my = sum(xs) / n, sum(ys) / n
+    num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    dx = sum((x - mx) ** 2 for x in xs) ** 0.5
+    dy = sum((y - my) ** 2 for y in ys) ** 0.5
+    return num / (dx * dy) if dx and dy else 0.0
+
+
+def prompt_corr(rows: list[Row]) -> float:
+    """Correlation between *user*-side length and the label.
+
+    The flip families pair one response with two different instructions, so the
+    instruction is where a new shortcut could appear if the violating prompt were
+    systematically longer.
+    """
+    xs = [sum(len(m["content"]) for m in r.messages if m["role"] == "user") for r in rows]
+    ys = [1.0 if r.label == NEG else 0.0 for r in rows]
+    return _corr(xs, ys)
+
+
 def length_corr(rows: list[Row]) -> float:
     """Point-biserial correlation between assistant-turn length and the label.
 
@@ -446,12 +473,7 @@ def length_corr(rows: list[Row]) -> float:
     """
     xs = [len(r.messages[-1]["content"]) for r in rows]
     ys = [1.0 if r.label == NEG else 0.0 for r in rows]
-    n = len(xs)
-    mx, my = sum(xs) / n, sum(ys) / n
-    num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
-    dx = sum((x - mx) ** 2 for x in xs) ** 0.5
-    dy = sum((y - my) ** 2 for y in ys) ** 0.5
-    return num / (dx * dy) if dx and dy else 0.0
+    return _corr(xs, ys)
 
 
 def main():
@@ -466,6 +488,8 @@ def main():
                     help="skip the user-turn surface-variation layer")
     ap.add_argument("--register-weight", type=int, default=1,
                     help="email/code/table/creative family draws per round")
+    ap.add_argument("--flip-weight", type=int, default=2,
+                    help="context-flip (same response, opposite label) draws per round")
     ap.add_argument("--longform-weight", type=int, default=3,
                     help="long-form family draws per generation round (0 = v1 behaviour)")
     args = ap.parse_args()
@@ -473,7 +497,8 @@ def main():
     rng = random.Random(args.seed + 991)
     rows = generate(args.n, args.seed, longform_weight=args.longform_weight,
                     naturalize=not args.no_naturalize,
-                    register_weight=args.register_weight)
+                    register_weight=args.register_weight,
+                    flip_weight=args.flip_weight)
     if not args.no_balance:
         rows = balance_by_length(rows, rng)
     rng.shuffle(rows)
@@ -505,7 +530,8 @@ def main():
     print(f"  pos={len(plen)} neg={len(nlen)}")
     print(f"  assistant-turn chars: pos mean {sum(plen)/len(plen):.0f}  neg mean {sum(nlen)/len(nlen):.0f}")
     print(f"  turns: {dict(sorted(turns.items()))}")
-    print(f"  length/label correlation: {length_corr(rows):+.3f}  (seed is about +0.5)")
+    print(f"  response-length/label corr: {length_corr(rows):+.3f}  (seed is about +0.4)")
+    print(f"  prompt-length/label corr:   {prompt_corr(rows):+.3f}")
     for (f_, m), c in sorted(fam.items()):
         print(f"    {f_:16s} {m:16s} {c}")
 
