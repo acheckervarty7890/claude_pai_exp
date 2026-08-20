@@ -28,7 +28,7 @@ def plain(turns):
     return [{"role": r, "content": c} for r, c in turns]
 
 
-def catalogue(primary_json, i, n_distractors=4):
+def catalogue(primary_json, i, n_distractors=None):
     """Advertise the tool that gets called alongside a few unrelated ones.
 
     Real function-calling prompts list several tools, which is most of why those
@@ -37,6 +37,11 @@ def catalogue(primary_json, i, n_distractors=4):
     correlate with the label.
     """
     primary = json.loads(primary_json)
+    if n_distractors is None:
+        # Vary the catalogue size so prompt length spreads the way real ones do.
+        # Driven by the entry's index, which runs independently over each class,
+        # so the two classes see the same distribution of sizes.
+        n_distractors = 2 + (i % 6)
     picks = [BANK[(i * 7 + k * 3) % len(BANK)] for k in range(n_distractors)]
     tools = primary + picks
     rng = random.Random(1000 + i)
