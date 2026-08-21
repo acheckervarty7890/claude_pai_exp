@@ -16,7 +16,7 @@ from pathlib import Path
 
 from .common import NEG, POS
 
-POOLS = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m"]
+POOLS = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n"]
 
 
 def check_alternating(msgs, where):
