@@ -16,7 +16,7 @@ from pathlib import Path
 
 from .common import NEG, POS
 
-POOLS = ["a", "b", "c", "d", "e", "f", "g", "h", "i"]
+POOLS = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
 
 
 def collect(pool_names):
@@ -81,6 +81,15 @@ def main():
     with args.out.open("w") as f:
         for label, msgs, _ in final:
             f.write(json.dumps({"inputs": json.dumps(msgs), "labels": label}) + "\n")
+
+    # Row-aligned sidecar naming each row's source pool. Activations for this file
+    # are expensive to compute (a 27B forward pass per row), so ablations are done
+    # by slicing the blob to a subset of these rows rather than recomputing - which
+    # needs to know which pool each row came from. See make_subset.py.
+    meta = args.out.with_suffix(".meta.jsonl")
+    with meta.open("w") as f:
+        for label, msgs, src in final:
+            f.write(json.dumps({"source": src, "labels": label}) + "\n")
 
     by_src = {}
     for label, _, src in final:

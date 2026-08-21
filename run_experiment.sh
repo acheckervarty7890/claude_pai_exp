@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# One iteration: stage the dev validation blob, train on a given JSONL, evaluate.
+# One iteration: stage the dev validation blob and train on a given JSONL.
 #
 #   ./run_experiment.sh <tag> <training_jsonl>
+# Then: ./eval_probe.sh <tag> dev   and   ./eval_probe.sh <tag> eval
 #
 # Everything is pinned to the model/layer the fetched blobs were computed with
 # (gemma-3-27b-it, layer 32) - a probe trained at any other model or layer is
@@ -17,7 +18,6 @@ POS=harmful_to_human
 NEG=not_harmful_to_human
 ACTS="activations/${TAG}_acts.pt"
 PROBE="probes/probe_${TAG}.pkl"
-RESULTS="results/results_${TAG}.csv"
 
 mkdir -p activations probes results
 
@@ -39,12 +39,4 @@ mkdir -p activations probes results
   --activations_save_path "$ACTS" \
   --output_probe_path "$PROBE"
 
-.venv/bin/python evaluation.py \
-  --probe_path "$PROBE" \
-  --eval_dataset_save_dir eval_datasets/hu_ha \
-  --activations_cache_dir eval_activations_hu_ha \
-  --pos_class_label "$POS" --neg_class_label "$NEG" \
-  --results_file_name "$RESULTS"
-
-echo "=== $TAG ==="
-cat "$RESULTS"
+echo "trained $PROBE — score it with ./eval_probe.sh $TAG dev  (or eval)"
