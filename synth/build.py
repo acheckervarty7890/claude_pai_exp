@@ -16,7 +16,20 @@ from pathlib import Path
 
 from .common import NEG, POS
 
-POOLS = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"]
+POOLS = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m"]
+
+
+def check_alternating(msgs, where):
+    """Chat templates reject two turns from the same speaker in a row.
+
+    Cheap to get wrong when hand-writing multi-turn rows and it fails deep inside
+    tokenisation, after the model has already been loaded - so check it here.
+    """
+    roles = [m["role"] for m in msgs]
+    if roles[0] != "user" or roles[-1] != "assistant" or any(
+        a == b for a, b in zip(roles, roles[1:])
+    ):
+        raise ValueError(f"{where}: conversation roles must alternate user/assistant, got {roles}")
 
 
 def collect(pool_names):
@@ -28,7 +41,8 @@ def collect(pool_names):
                 continue
             if not value or not isinstance(value[0], tuple):
                 continue
-            for label, msgs in value:
+            for i, (label, msgs) in enumerate(value):
+                check_alternating(msgs, f"{attr}[{i}]")
                 rows.append((label, msgs, attr))
             provenance[attr] = len(value)
     return rows, provenance
