@@ -22,7 +22,8 @@ import pools_hh, pools_hh2, pools_hh3, pools_hh4, pools_hh5  # noqa: E402
 import pools_prof, pools_prof2, pools_prof3, pools_prof4  # noqa: E402
 import pools_tool, pools_tool2, pools_tool3, pools_tool4  # noqa: E402
 import pools_tool5, pools_tool6, pools_tool7, pools_tool8  # noqa: E402
-import pools_tool9, pools_tool10, pools_tool11, pools_tool12  # noqa: E402
+import pools_tool9, pools_tool10, pools_tool11  # noqa: E402
+import pools_tool12, pools_tool13  # noqa: E402
 from func_bank import BANK  # noqa: E402
 
 # The activation blobs are 1024 tokens wide, so anything longer is truncated and
@@ -163,7 +164,7 @@ def collect(extra_modules=(), tool_variants=1, user_only_every=0):
     tool_mods = (pools_tool, pools_tool2, pools_tool3, pools_tool4,
                  pools_tool5, pools_tool6, pools_tool7, pools_tool8,
                  pools_tool9, pools_tool10, pools_tool11,
-                 pools_tool12)
+                 pools_tool12, pools_tool13)
     for mod in plain_mods + tuple(extra_modules):
         high += [plain(t) for t in mod.HIGH]
         low += [plain(t) for t in mod.LOW]
