@@ -16,7 +16,7 @@ from pathlib import Path
 
 from .common import NEG, POS
 
-POOLS = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
+POOLS = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"]
 
 
 def collect(pool_names):
