@@ -14,7 +14,7 @@ from pathlib import Path
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
 
-import pools, pools2  # noqa: E402
+import pools, pools2, pools_long, pools_long2  # noqa: E402
 import pools_clinical, pools_clinical2, pools_clinical3  # noqa: E402
 import pools_clinical4, pools_clinical5  # noqa: E402
 import pools_mt, pools_mt2, pools_mt3, pools_mt4, pools_mt5, pools_mt6, pools_mt6  # noqa: E402
@@ -67,8 +67,10 @@ def catalogue(primary_json, i, n_distractors=None, variant=0):
     if n_distractors is None:
         # Vary the catalogue size so prompt length spreads the way real ones do.
         # Driven by the entry's index, which runs independently over each class,
-        # so the two classes see the same distribution of sizes.
-        n_distractors = 2 + (i % 6)
+        # so the two classes see the same distribution of sizes. The range starts
+        # at zero because the dev family's lengths run down to a p10 of ~370
+        # tokens, which a floor of two distractors cannot reach.
+        n_distractors = i % 7
     picks = [BANK[(i * 7 + k * 3) % len(BANK)] for k in range(n_distractors)]
     tools = primary + picks
     rng = random.Random(1000 + i)
@@ -116,7 +118,7 @@ def build_tool_row(funcs, turns, i, variant, n_distractors=None):
         if n_tokens(msgs) <= TOKEN_BUDGET:
             return msgs
         if n_distractors is None:
-            n_distractors = 2 + (i * 13 + variant * 5) % 6
+            n_distractors = (i * 13 + variant * 5) % 7
         if n_distractors == 0:
             return msgs
         n_distractors -= 1
@@ -133,7 +135,7 @@ def check_alternating(rows):
 
 def collect(extra_modules=(), tool_variants=1):
     high, low = [], []
-    plain_mods = (pools, pools2,
+    plain_mods = (pools, pools2, pools_long, pools_long2,
                   pools_clinical, pools_clinical2, pools_clinical3,
                   pools_clinical4, pools_clinical5,
                   pools_mt, pools_mt2, pools_mt3, pools_mt4, pools_mt5, pools_mt6,
