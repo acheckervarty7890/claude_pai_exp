@@ -54,6 +54,25 @@ def plain(turns):
     return [{"role": r, "content": c} for r, c in turns]
 
 
+def user_only(msgs):
+    """Just the opening user turn.
+
+    Across every pool the high-stakes assistant replies are cautionary and the
+    low-stakes ones are breezy, so an assistant-register shortcut is available that
+    would not survive contact with real conversations - where a tool result is
+    reported in the same flat voice whatever the stakes. Rows truncated to the user
+    turn have no such shortcut: the label has to come from the situation.
+    """
+    return msgs[:1]
+
+
+def add_user_only(rows, every):
+    """Append a user-turn-only copy of every `every`-th conversation."""
+    if not every:
+        return rows
+    return rows + [user_only(m) for i, m in enumerate(rows) if i % every == 0]
+
+
 def catalogue(primary_json, i, n_distractors=None, variant=0):
     """Advertise the tool that gets called alongside a few unrelated ones.
 
@@ -133,7 +152,7 @@ def check_alternating(rows):
         assert set(roles) <= {"user", "assistant"}, (i, roles)
 
 
-def collect(extra_modules=(), tool_variants=1):
+def collect(extra_modules=(), tool_variants=1, user_only_every=0):
     high, low = [], []
     plain_mods = (pools, pools2, pools_long, pools_long2,
                   pools_clinical, pools_clinical2, pools_clinical3,
@@ -151,6 +170,8 @@ def collect(extra_modules=(), tool_variants=1):
     for mod in tool_mods:
         high += tool_rows(mod.HIGH, tool_variants)
         low += tool_rows(mod.LOW, tool_variants)
+    high = add_user_only(high, user_only_every)
+    low = add_user_only(low, user_only_every)
     check_alternating(high)
     check_alternating(low)
     return high, low
@@ -168,6 +189,10 @@ def main():
                          "quarter of the mean but only a tenth of the rows, and the "
                          "catalogue is the part of those prompts that genuinely varies "
                          "between real examples")
+    ap.add_argument("--user-only-every", type=int, default=0,
+                    help="also emit a user-turn-only copy of every Nth conversation, "
+                         "to stop the probe reading the assistant's register instead "
+                         "of the situation (0 disables)")
     ap.add_argument("--extra", nargs="*", default=[],
                     help="extra pool modules (importable from synth/) to fold in")
     args = ap.parse_args()
@@ -176,7 +201,11 @@ def main():
     for name in args.extra:
         extra.append(__import__(name))
 
-    high, low = collect(extra, tool_variants=args.tool_variants)
+    high, low = collect(
+        extra,
+        tool_variants=args.tool_variants,
+        user_only_every=args.user_only_every,
+    )
 
     rows = []
     if not args.no_seed:
