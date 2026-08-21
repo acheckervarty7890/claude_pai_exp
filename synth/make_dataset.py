@@ -14,10 +14,10 @@ from pathlib import Path
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
 
-import pools  # noqa: E402
+import pools, pools2  # noqa: E402
 import pools_clinical, pools_clinical2, pools_clinical3  # noqa: E402
 import pools_clinical4, pools_clinical5  # noqa: E402
-import pools_mt, pools_mt2, pools_mt3, pools_mt4, pools_mt5  # noqa: E402
+import pools_mt, pools_mt2, pools_mt3, pools_mt4, pools_mt5, pools_mt6, pools_mt6  # noqa: E402
 import pools_hh, pools_hh2, pools_hh3, pools_hh4, pools_hh5  # noqa: E402
 import pools_prof, pools_prof2, pools_prof3, pools_prof4  # noqa: E402
 import pools_tool, pools_tool2, pools_tool3, pools_tool4  # noqa: E402
@@ -133,10 +133,10 @@ def check_alternating(rows):
 
 def collect(extra_modules=(), tool_variants=1):
     high, low = [], []
-    plain_mods = (pools,
+    plain_mods = (pools, pools2,
                   pools_clinical, pools_clinical2, pools_clinical3,
                   pools_clinical4, pools_clinical5,
-                  pools_mt, pools_mt2, pools_mt3, pools_mt4, pools_mt5,
+                  pools_mt, pools_mt2, pools_mt3, pools_mt4, pools_mt5, pools_mt6,
                   pools_hh, pools_hh2, pools_hh3, pools_hh4, pools_hh5,
                   pools_prof, pools_prof2, pools_prof3, pools_prof4)
     tool_mods = (pools_tool, pools_tool2, pools_tool3, pools_tool4,
