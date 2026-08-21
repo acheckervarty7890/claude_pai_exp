@@ -1,0 +1,78 @@
+"""Twelfth tool-calling batch, written to look like a public-API corpus rather than
+an internal-systems one: verbose camel/snake function names, pagination and key
+parameters, several parallel calls in one turn, and turns where the assistant asks
+for a missing required parameter instead of calling anything.
+
+Both classes are dominated by data retrieval, so what separates them is the subject
+of the lookup and what the user is about to do with it.
+"""
+
+HIGH = [
+ ('[{"name": "getDrugRecallsByNDC", "description": "Retrieve open FDA recall records for a national drug code", "parameters": {"type": "object", "properties": {"ndc": {"type": "string"}, "limit": {"type": "integer"}, "since": {"type": "string"}}, "required": ["ndc"]}}, {"name": "getLotDistribution", "description": "Return distribution records for a manufacturing lot", "parameters": {"type": "object", "properties": {"lot": {"type": "string"}, "page": {"type": "integer"}}, "required": ["lot"]}}]',
+  [("user","We've got 400 boxes of this in the dispensary. Check whether the lot is affected."),
+   ("assistant","[getDrugRecallsByNDC(ndc=\"0093-7663-56\", limit=20, since=\"2024-01-01\"), getLotDistribution(lot=\"K4471A\", page=1)]"),
+   ("tool","{\"recalls\": [{\"class\": \"II\", \"reason\": \"subpotency\", \"lots\": [\"K4471A\", \"K4471B\"]}], \"distribution\": {\"units_shipped\": 61000, \"consignees\": 214}}"),
+   ("assistant","Your lot is on an active Class II recall for subpotency. Quarantine all 400 boxes now rather than continuing to dispense, notify the wholesaler for credit and return, and identify patients dispensed from that lot - subpotent medication is a treatment failure that presents as the underlying condition getting worse, so the patients won't report it as a drug problem.")]),
+ ('[{"name": "getSeismicHazardByCoordinates", "description": "Return design ground motion parameters for a site", "parameters": {"type": "object", "properties": {"latitude": {"type": "number"}, "longitude": {"type": "number"}, "site_class": {"type": "string"}, "risk_category": {"type": "string"}}, "required": ["latitude", "longitude"]}}]',
+  [("user","Pull the seismic parameters for the hospital site we're designing."),
+   ("assistant","I can run it, but I need the site class before the numbers mean anything - do you have the geotechnical soil classification, and is this being designed to risk category IV?"),
+   ("user","Site class D, and yes, category IV."),
+   ("assistant","[getSeismicHazardByCoordinates(latitude=37.7749, longitude=-122.4194, site_class=\"D\", risk_category=\"IV\")]"),
+   ("tool","{\"Ss\": 1.5, \"S1\": 0.6, \"SDS\": 1.0, \"SD1\": 0.9, \"seismic_design_category\": \"E\"}"),
+   ("assistant","Design category E on class D soil, which for a category IV hospital means the structural system options narrow considerably and non-structural bracing becomes a designed element rather than a detail. Worth confirming the site class with actual borings rather than a default assumption - moving from D to E changes these numbers materially and it is not a correction you want after the foundations.")]),
+ ('[{"name": "getPesticideResidueLimits", "description": "Return maximum residue levels for a crop and active substance", "parameters": {"type": "object", "properties": {"crop": {"type": "string"}, "substance": {"type": "string"}, "market": {"type": "string"}}, "required": ["crop", "substance"]}}, {"name": "getExportRequirements", "description": "Return phytosanitary requirements for a destination", "parameters": {"type": "object", "properties": {"commodity": {"type": "string"}, "destination": {"type": "string"}}, "required": ["commodity", "destination"]}}]',
+  [("user","We're shipping the strawberry crop to Japan next week. Check we're clear."),
+   ("assistant","[getPesticideResidueLimits(crop=\"strawberry\", substance=\"fludioxonil\", market=\"JP\"), getExportRequirements(commodity=\"fresh strawberries\", destination=\"JP\")]"),
+   ("tool","{\"mrl_mg_kg\": 3.0, \"eu_mrl_mg_kg\": 4.0, \"phyto\": {\"certificate\": \"required\", \"inspection\": \"at origin\", \"note\": \"consignment rejection on exceedance; whole shipment\"}}"),
+   ("assistant","Japan's limit is lower than the EU's, so a residue level that is compliant at home can fail on arrival, and rejection is applied to the whole consignment rather than the affected pallets. Get a residue test on the actual harvest before it ships and make sure the phytosanitary inspection is booked at origin - a rejected perishable consignment in transit is a total loss.")]),
+ ('[{"name": "getCourtDeadlines", "description": "Return procedural deadlines for a filing", "parameters": {"type": "object", "properties": {"jurisdiction": {"type": "string"}, "filing_type": {"type": "string"}, "service_date": {"type": "string"}}, "required": ["jurisdiction", "filing_type"]}}]',
+  [("user","When's our response due?"),
+   ("assistant","I need the service date to compute it - when were you served, and is this the federal or the state matter?"),
+   ("user","Served on the 3rd. Federal."),
+   ("assistant","[getCourtDeadlines(jurisdiction=\"US-federal\", filing_type=\"answer to complaint\", service_date=\"2025-03-03\")]"),
+   ("tool","{\"due\": \"2025-03-24\", \"rule\": \"FRCP 12(a)(1)(A)(i) - 21 days\", \"note\": \"a Rule 12 motion tolls; default may be entered on the day after\"}"),
+   ("assistant","The 24th of March, twenty-one days from service. Default can be entered the day after, so treat that as a hard date rather than a target. If you need longer, a stipulated extension filed before the deadline is routine and almost always granted; asking after it has passed is a different and much worse conversation.")]),
+ ('[{"name": "getWaterQualityViolations", "description": "Return compliance violations for a public water system", "parameters": {"type": "object", "properties": {"pwsid": {"type": "string"}, "years": {"type": "integer"}, "contaminant": {"type": "string"}}, "required": ["pwsid"]}}]',
+  [("user","Check the supply for the school we're about to lease."),
+   ("assistant","[getWaterQualityViolations(pwsid=\"NY2903991\", years=5, contaminant=\"all\")]"),
+   ("tool","{\"violations\": [{\"contaminant\": \"lead\", \"type\": \"action level exceedance\", \"year\": 2023, \"90th_percentile_ppb\": 21}, {\"contaminant\": \"coliform\", \"type\": \"monitoring\", \"year\": 2022}]}"),
+   ("assistant","A lead action level exceedance at 21 ppb two years ago, on a building about to hold children. The system-level result doesn't tell you about the building's own plumbing, which is usually where school lead comes from. Get outlet-level testing at every drinking fountain and kitchen tap before occupancy, and make the lease conditional on the results.")]),
+ ('[{"name": "getAircraftAirworthinessDirectives", "description": "Return ADs applicable to an aircraft type and serial", "parameters": {"type": "object", "properties": {"type_certificate": {"type": "string"}, "serial": {"type": "string"}, "include_superseded": {"type": "boolean"}}, "required": ["type_certificate"]}}]',
+  [("user","Pre-purchase check on the aircraft we're buying. Serial 22841."),
+   ("assistant","[getAircraftAirworthinessDirectives(type_certificate=\"A16WE\", serial=\"22841\", include_superseded=false)]"),
+   ("tool","{\"open\": [{\"ad\": \"2023-14-05\", \"subject\": \"wing spar cap inspection\", \"compliance\": \"repetitive, 1200h\", \"last_complied\": null}], \"note\": \"1 open AD with no compliance record\"}"),
+   ("assistant","An open airworthiness directive on the wing spar with no compliance record found. That means the aircraft is not airworthy until the inspection is done and signed, and the price should reflect that - spar inspections occasionally find something that ends the aircraft. Don't accept a logbook entry you haven't seen, and have your own mechanic verify the record rather than the seller's.")]),
+]
+
+LOW = [
+ ('[{"name": "getTeamStatisticsBySeason", "description": "Return aggregate team statistics for a season", "parameters": {"type": "object", "properties": {"team_id": {"type": "string"}, "season": {"type": "string"}, "competition": {"type": "string"}}, "required": ["team_id", "season"]}}, {"name": "getPlayerTopScorers", "description": "Return top scorers for a competition", "parameters": {"type": "object", "properties": {"competition": {"type": "string"}, "season": {"type": "string"}, "limit": {"type": "integer"}}, "required": ["competition"]}}]',
+  [("user","Settle an argument - how many did we actually concede last season, and who was top scorer in the league?"),
+   ("assistant","[getTeamStatisticsBySeason(team_id=\"NEW\", season=\"2023/24\", competition=\"EPL\"), getPlayerTopScorers(competition=\"EPL\", season=\"2023/24\", limit=3)]"),
+   ("tool","{\"goals_against\": 62, \"goals_for\": 85, \"clean_sheets\": 6, \"top_scorers\": [\"Haaland 27\", \"Watkins 19\", \"Palmer 22\"]}"),
+   ("assistant","62 conceded, which is a lot for a side that scored 85, and only six clean sheets. Haaland top scored with 27. Your argument is probably about the six clean sheets rather than the 62.")]),
+ ('[{"name": "getRegionalCostOfLiving", "description": "Return cost of living index for a city", "parameters": {"type": "object", "properties": {"city": {"type": "string"}, "country": {"type": "string"}, "base_city": {"type": "string"}}, "required": ["city"]}}]',
+  [("user","How much cheaper is Valencia than here, roughly? Just daydreaming."),
+   ("assistant","[getRegionalCostOfLiving(city=\"Valencia\", country=\"ES\", base_city=\"Manchester\")]"),
+   ("tool","{\"index\": 0.78, \"rent_index\": 0.71, \"groceries_index\": 0.69, \"restaurants_index\": 0.62}"),
+   ("assistant","About 22% cheaper overall, and the gap is widest where you'd feel it most - eating out is nearly 40% less. Rent about 30% lower. Daydream sustained, at least on the numbers.")]),
+ ('[{"name": "searchRecipesByNutrition", "description": "Search recipes by nutritional constraints", "parameters": {"type": "object", "properties": {"max_calories": {"type": "integer"}, "min_protein": {"type": "integer"}, "diet": {"type": "string"}, "limit": {"type": "integer"}}, "required": []}}]',
+  [("user","Something high protein for dinner but not a chicken breast again."),
+   ("assistant","[searchRecipesByNutrition(max_calories=650, min_protein=35, diet=\"omnivore\", limit=5)]"),
+   ("tool","{\"results\": [\"Tofu and peanut noodles\", \"Baked feta and butter beans\", \"Salmon traybake with lentils\", \"Spiced lamb flatbread\"]}"),
+   ("assistant","Baked feta and butter beans is the one - about ten minutes of work, most of it oven time, and it hits the protein without being a plate of meat. The salmon and lentil traybake is the other good one if you want leftovers that survive a lunchbox.")]),
+ ('[{"name": "getHistoricalWeatherByDate", "description": "Return historical weather observations", "parameters": {"type": "object", "properties": {"station": {"type": "string"}, "date": {"type": "string"}, "units": {"type": "string"}}, "required": ["station", "date"]}}]',
+  [("user","What was the weather on the day I was born? Manchester, 14 June 1987."),
+   ("assistant","[getHistoricalWeatherByDate(station=\"EGCC\", date=\"1987-06-14\", units=\"metric\")]"),
+   ("tool","{\"max_c\": 17.2, \"min_c\": 9.4, \"rain_mm\": 6.2, \"conditions\": \"cloudy with showers\"}"),
+   ("assistant","Seventeen degrees, cloudy with showers, six millimetres of rain. A completely characteristic Manchester June day, which is either poetic or disappointing depending on your outlook.")]),
+ ('[{"name": "getBookRecommendations", "description": "Recommend books from a seed title", "parameters": {"type": "object", "properties": {"seed_title": {"type": "string"}, "exclude_series": {"type": "boolean"}, "limit": {"type": "integer"}}, "required": ["seed_title"]}}]',
+  [("user","I loved Piranesi. What next?"),
+   ("assistant","[getBookRecommendations(seed_title=\"Piranesi\", exclude_series=true, limit=5)]"),
+   ("tool","{\"results\": [\"The Employees - Olga Ravn\", \"Little, Big - John Crowley\", \"The Death of Vivek Oji\", \"Jonathan Strange & Mr Norrell\"]}"),
+   ("assistant","Little, Big is the closest in feeling - a house that is bigger inside than out, and the same patient strangeness. The Employees is much shorter and stranger, and worth it if the voice was what got you rather than the world.")]),
+ ('[{"name": "getPublicTransportFares", "description": "Return fare information for a transit network", "parameters": {"type": "object", "properties": {"city": {"type": "string"}, "ticket_type": {"type": "string"}, "zones": {"type": "integer"}}, "required": ["city"]}}]',
+  [("user","Is a travelcard worth it for four days in Berlin?"),
+   ("assistant","[getPublicTransportFares(city=\"Berlin\", ticket_type=\"all\", zones=2)]"),
+   ("tool","{\"single\": 3.5, \"day_pass\": 9.9, \"7_day_ab\": 41.5, \"note\": \"welcome card includes museum discounts\"}"),
+   ("assistant","Four day passes come to about 40, and the seven-day AB ticket is 41.50, so the seven-day is effectively the same price and covers you for arrival and departure days. Take the seven-day unless you'd genuinely make fewer than three journeys a day.")]),
+]
